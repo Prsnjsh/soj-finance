@@ -1,0 +1,8 @@
+{
+  "name": "soj-finance",
+  "version": "1.0.0",
+  "dependencies": {
+    "plaid": "^21.0.0",
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}
