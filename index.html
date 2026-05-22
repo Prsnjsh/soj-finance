@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOJ Holdings — Treasury Portal</title>
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+    :root {
+      --bg: #0a0a0b;
+      --surface: #0f0f10;
+      --card: #141416;
+      --card2: #1a1a1c;
+      --border: #1e1e22;
+      --border2: #252528;
+      --gold: #E9A228;
+      --gold-dim: #7A5A1E;
+      --gold-glow: rgba(233,162,40,0.12);
+      --cream: #f0ead8;
+      --green: #26A05A;
+      --red: #C8786E;
+      --blue: #4A90C8;
+      --purple: #9B7EC8;
+      --text: #e8e4dc;
+      --text-dim: #8a8a9a;
+      --text-muted: #444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+    /* ── LOGIN ── */
+    .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 0%, #1a1200 0%, var(--bg) 60%); }
+    .login-box { width: 380px; }
+    .login-logo { text-align: center; margin-bottom: 36px; }
+    .login-logo img, .login-logo .logo-svg { width: 72px; height: 72px; border-radius: 12px; margin-bottom: 16px; display: block; margin-left: auto; }
+    .login-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; }
+    .login-sub { font-size: 11px; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; margin-top: 4px; }
+    .login-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
+    .field-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 6px; }
+    .field-input { width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); padding: 10px 14px; font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; }
+    .field-input:focus { border-color: var(--gold-dim); }
+    .field-input option { background: var(--card); }
+    .access-tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 20px; }
+    .access-tag { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 8px; font-size: 11px; font-family: 'DM Sans', sans-serif; }
+    .btn-primary { width: 100%; background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 10px; padding: 13px; color: var(--gold); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.06em; transition: all 0.2s; margin-top: 4px; }
+    .btn-primary:hover { background: rgba(233,162,40,0.2); border-color: var(--gold); }
+    .login-hint { font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 14px; }
+    .login-err { font-size: 12px; color: var(--red); text-align: center; margin-bottom: 10px; }
+
+    /* ── HEADER ── */
+    .header { background: linear-gradient(180deg, #0d0c08 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .header-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .brand-logo { width: 28px; height: 28px; border-radius: 6px; }
+    .brand-name { display: flex; flex-direction: column; line-height: 1.1; }
+    .brand-soj { font-size: 12px; letter-spacing: 0.18em; color: var(--gold); font-weight: 700; text-transform: uppercase; }
+    .brand-holdings { font-size: 10px; letter-spacing: 0.14em; color: var(--gold); opacity: 0.75; font-weight: 600; text-transform: uppercase; }
+    nav { display: flex; gap: 4px; }
+    .nav-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; letter-spacing: 0.06em; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+    .nav-btn.active { border-color: rgba(233,162,40,0.3); background: var(--gold-glow); color: var(--gold); }
+    .nav-btn:hover:not(.active) { color: var(--text-dim); }
+    .nav-badge { font-size: 9px; padding: 1px 6px; border-radius: 8px; background: rgba(233,162,40,0.2); color: var(--gold); font-weight: 700; min-width: 16px; text-align: center; }
+    .header-user { display: flex; align-items: center; gap: 12px; }
+    .user-info { display: flex; align-items: center; gap: 7px; }
+    .user-name { font-size: 11px; color: var(--text-muted); }
+    .btn-signout { background: var(--card); border: 1px solid var(--border2); border-radius: 6px; padding: 4px 10px; color: var(--text-muted); font-size: 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; letter-spacing: 0.06em; transition: all 0.15s; }
+    .btn-signout:hover { color: var(--text); border-color: var(--border); }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 28px 28px; }
+
+    /* ── CARDS ── */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; }
+    .card-sm { padding: 16px 18px; }
+
+    /* ── DASHBOARD HERO ── */
+    .hero { background: linear-gradient(135deg, #111008, #0f0e0a); border: 1px solid #2a2000; border-radius: 16px; padding: 28px 32px; margin-bottom: 24px; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; top: -60px; right: -60px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(233,162,40,0.06), transparent 70%); pointer-events: none; }
+    .hero-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 6px; }
+    .hero-amount { font-family: 'Cormorant Garamond', serif; font-size: 52px; color: var(--cream); letter-spacing: -0.02em; line-height: 1; margin-bottom: 24px; }
+    .hero-stats { display: flex; gap: 0; flex-wrap: wrap; margin-bottom: 20px; }
+    .hero-stat { padding-right: 28px; margin-right: 28px; border-right: 1px solid #2a2000; }
+    .hero-stat:last-child { border-right: none; padding-right: 0; margin-right: 0; }
+    .hero-stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+    .hero-stat-val { font-size: 20px; font-family: 'DM Sans', sans-serif; }
+    .hero-ar-ap { display: flex; gap: 0; padding-top: 18px; border-top: 1px solid #2a2000; }
+    .hero-ar-ap-item { cursor: pointer; padding-right: 28px; margin-right: 28px; border-right: 1px solid #2a2000; }
+    .hero-ar-ap-item:last-child { border-right: none; }
+    .hero-ar-ap-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+    .hero-ar-ap-row { display: flex; align-items: center; gap: 8px; }
+    .hero-ar-ap-val { font-size: 18px; }
+    .count-pill { font-size: 9px; padding: 2px 8px; border-radius: 10px; font-weight: 700; min-width: 22px; text-align: center; }
+
+    /* ── ENTITY CARDS ── */
+    .entity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .entity-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; }
+    .entity-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .entity-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .entity-logo { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+    .entity-name { font-size: 12px; color: var(--text-dim); font-family: 'DM Sans', sans-serif; }
+    .entity-net { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--cream); margin-bottom: 8px; }
+    .entity-breakdown { display: flex; gap: 14px; margin-bottom: 8px; }
+    .entity-stat { font-size: 12px; font-family: 'DM Sans', sans-serif; }
+    .entity-banks { font-size: 10px; color: var(--text-muted); font-family: 'DM Sans', sans-serif; }
+
+    /* ── FILTERS ── */
+    .filter-row { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+    .filter-group { display: flex; gap: 4px; align-items: center; }
+    .filter-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; margin-right: 4px; }
+    .chip { padding: 4px 11px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+    .chip.active { background: var(--gold-glow); border-color: rgba(233,162,40,0.4); color: var(--gold); }
+
+    /* ── ACCOUNT CARDS ── */
+    .accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .acct-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; position: relative; overflow: hidden; transition: border-color 0.2s; }
+    .acct-card:hover { border-color: var(--border2); }
+    .acct-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .acct-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .acct-left { display: flex; align-items: center; gap: 8px; }
+    .acct-logo { width: 26px; height: 26px; border-radius: 6px; object-fit: cover; }
+    .acct-type-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+    .acct-type-icon { opacity: 0.6; }
+    .acct-type-text { font-size: 10px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+    .acct-mask { font-size: 11px; color: var(--text-muted); }
+    .acct-bank-tag { font-size: 9px; padding: 2px 7px; border-radius: 4px; font-weight: 700; }
+    .acct-amount { font-family: 'Cormorant Garamond', serif; font-size: 22px; margin-bottom: 3px; }
+    .acct-credit { font-size: 10px; color: var(--gold); margin-bottom: 4px; }
+    .acct-footer { display: flex; justify-content: space-between; }
+    .acct-entity { font-size: 10px; color: var(--text-muted); }
+    .acct-change { font-size: 11px; font-weight: 600; }
+
+    /* ── HSRF SECTION ── */
+    .hsrf-section { background: linear-gradient(135deg, #0a0e14, #0d1118); border: 1px solid #1a2a3a; border-radius: 14px; padding: 24px 28px; margin-bottom: 24px; position: relative; overflow: hidden; }
+    .hsrf-section::before { content: ''; position: absolute; top: -40px; right: -40px; width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle, rgba(74,144,200,0.08), transparent 70%); pointer-events: none; }
+    .hsrf-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .hsrf-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(74,144,200,0.15); border: 1px solid rgba(74,144,200,0.3); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .hsrf-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--cream); }
+    .hsrf-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .hsrf-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .hsrf-stat { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .hsrf-stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+    .hsrf-stat-val { font-family: 'Cormorant Garamond', serif; font-size: 26px; }
+    .hsrf-stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .hsrf-progress-wrap { margin-bottom: 8px; }
+    .hsrf-progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+    .hsrf-progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .hsrf-progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #4A90C8, #7EB8E8); transition: width 0.6s ease; }
+    .hsrf-edit-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .hsrf-input { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); padding: 7px 10px; font-size: 12px; font-family: 'DM Sans', sans-serif; outline: none; width: 140px; }
+    .btn-sm { padding: 7px 14px; border-radius: 6px; font-size: 11px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; font-weight: 600; letter-spacing: 0.04em; }
+    .btn-blue { background: rgba(74,144,200,0.15); border: 1px solid rgba(74,144,200,0.3); color: #7EB8E8; }
+    .btn-blue:hover { background: rgba(74,144,200,0.25); }
+
+    /* ── CONNECT BANK ── */
+    .connect-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 24px; }
+    .connect-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .connect-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--cream); }
+    .connect-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .entity-connect-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .entity-connect-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .entity-connect-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.disconnected { background: var(--text-muted); }
+    .btn-connect { background: var(--gold); border: none; border-radius: 8px; padding: 9px 0; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; color: #000; cursor: pointer; width: 100%; transition: opacity 0.2s; }
+    .btn-connect:hover { opacity: 0.9; }
+    .btn-connect:disabled { opacity: 0.5; cursor: not-allowed; }
+    .last-synced { font-size: 10px; color: var(--text-muted); margin-top: 8px; }
+
+    /* ── TABLES ── */
+    .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 10px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    td { padding: 12px 16px; border-bottom: 1px solid #141416; font-size: 13px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.015); cursor: pointer; }
+    .td-muted { color: var(--text-dim); font-size: 12px; }
+    .status-pill { font-size: 10px; padding: 3px 9px; border-radius: 10px; display: inline-block; }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; }
+    .page-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--cream); font-weight: 400; }
+    .page-sub { font-size: 10px; color: var(--text-muted); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px; }
+    .btn-gold { background: var(--gold-glow); border: 1px solid rgba(233,162,40,0.35); border-radius: 8px; padding: 9px 18px; color: var(--gold); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 0.06em; transition: all 0.15s; }
+    .btn-gold:hover { background: rgba(233,162,40,0.2); }
+    .btn-ghost { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; padding: 5px 11px; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border); }
+    .btn-danger { background: rgba(200,120,110,0.12); border: 1px solid rgba(200,120,110,0.3); border-radius: 6px; padding: 5px 11px; color: var(--red); font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; }
+
+    /* ── INVOICE/PO FORM ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-field { margin-bottom: 10px; }
+    .form-input { width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); padding: 8px 10px; font-size: 12px; font-family: 'DM Sans', sans-serif; outline: none; box-sizing: border-box; }
+    .form-input:focus { border-color: var(--gold-dim); }
+    textarea.form-input { resize: vertical; line-height: 1.5; }
+    .summary-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: var(--text-dim); }
+    .summary-total { display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border); font-size: 16px; color: var(--gold); margin-top: 6px; }
+    .back-btn { background: none; border: none; color: var(--text-muted); font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer; padding: 6px 0; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+    .back-btn:hover { color: var(--text); }
+
+    /* ── EMAIL RECIPIENTS ── */
+    .email-row { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 5px; }
+    .email-always { background: rgba(233,162,40,0.06); border-color: rgba(233,162,40,0.2); }
+    .dot-gold { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+    .remove-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0; line-height: 1; margin-left: auto; }
+
+    /* ── USER MGMT ── */
+    .brand-toggle { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+    .brand-toggle.active { border-color: rgba(233,162,40,0.4); background: var(--gold-glow); }
+    .switch { width: 36px; height: 20px; border-radius: 10px; border: 1px solid var(--border); position: relative; cursor: pointer; padding: 0; }
+    .switch-thumb { width: 14px; height: 14px; border-radius: 50%; position: absolute; top: 2px; transition: left 0.15s; }
+    .switch.on { background: rgba(38,160,90,0.15); border-color: rgba(38,160,90,0.4); }
+    .switch.on .switch-thumb { left: 18px; background: var(--green); }
+    .switch.off { background: var(--surface); }
+    .switch.off .switch-thumb { left: 2px; background: var(--text-muted); }
+
+    /* ── TOAST ── */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 12px; color: var(--text); z-index: 9999; transform: translateY(80px); transition: transform 0.3s; max-width: 340px; }
+    .toast.show { transform: translateY(0); }
+    .toast.success { border-color: rgba(38,160,90,0.5); }
+    .toast.error { border-color: rgba(200,120,110,0.5); }
+
+    /* ── MODAL ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; display: none; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; max-width: 440px; width: 90%; }
+    .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--cream); margin-bottom: 8px; }
+    .modal-sub { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-cancel { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; }
+
+    /* ── APPROVAL BANNER ── */
+    .approval-banner { background: rgba(233,162,40,0.08); border: 1px solid rgba(233,162,40,0.25); border-radius: 10px; padding: 12px 18px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .approval-banner-text { font-size: 13px; color: var(--gold); }
+
+    /* ── STATS GRID ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+    .stat-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 7px; }
+    .stat-val { font-family: 'Cormorant Garamond', serif; font-size: 22px; }
+
+    /* ── MISC ── */
+    .section-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+    .empty-state { text-align: center; padding: 44px 24px; color: var(--text-muted); font-size: 13px; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .flex-gap { display: flex; gap: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mb-20 { margin-bottom: 20px; }
+    .text-gold { color: var(--gold); }
+    .text-green { color: var(--green); }
+    .text-red { color: var(--red); }
+    .text-dim { color: var(--text-dim); }
+    .text-muted { color: var(--text-muted); }
+    .serif { font-family: 'Cormorant Garamond', serif; }
+    .small { font-size: 11px; }
+    .xsmall { font-size: 10px; }
+    .hidden { display: none; }
+
+    @media(max-width:640px) {
+      .container { padding: 16px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="logo-svg" style="background:#141416;border:1px solid #2a2000;display:flex;align-items:center;justify-content:center;">
+          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="44" height="44" rx="8" fill="#141416"/>
+            <path d="M22 8L28 14H22V20L16 14L22 8Z" fill="#E9A228"/>
+            <path d="M22 36L16 30H22V24L28 30L22 36Z" fill="#E9A228"/>
+            <path d="M14 22L8 16V28L14 22Z" fill="#E9A228" opacity="0.7"/>
+            <path d="M30 22L36 16V28L30 22Z" fill="#E9A228" opacity="0.7"/>
+            <rect x="19" y="19" width="6" height="6" rx="1" fill="#E9A228" opacity="0.9"/>
+          </svg>
+        </div>
+        <div class="login-title">SOJ Holdings</div>
+        <div class="login-sub">Treasury Portal</div>
+      </div>
+      <div class="login-card">
+        <div class="field-label mb-12">Select User</div>
+        <select id="login-user-select" class="field-input mb-16" onchange="onUserSelect()">
+          <option value="">Choose your account…</option>
+        </select>
+        <div id="login-access-tags" class="access-tags" style="display:none"></div>
+        <div class="field-label mb-12">PIN</div>
+        <input type="password" id="login-pin" maxlength="8" class="field-input mb-16"
+          placeholder="Enter PIN" style="letter-spacing:0.3em;font-size:20px;text-align:center;"
+          onkeydown="if(event.key==='Enter')doLogin()" />
+        <div id="login-err" class="login-err hidden"></div>
+        <button class="btn-primary" onclick="doLogin()">Sign In →</button>
+        <div class="login-hint">Demo PINs: Admin 1234 · PPP 2222 · ST 3333 · SOJ 4444</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════════ -->
+<div id="app-screen" class="hidden">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-brand">
+      <svg width="28" height="28" viewBox="0 0 44 44" fill="none" class="brand-logo">
+        <rect width="44" height="44" rx="8" fill="#141416"/>
+        <path d="M22 8L28 14H22V20L16 14L22 8Z" fill="#E9A228"/>
+        <path d="M22 36L16 30H22V24L28 30L22 36Z" fill="#E9A228"/>
+        <path d="M14 22L8 16V28L14 22Z" fill="#E9A228" opacity="0.7"/>
+        <path d="M30 22L36 16V28L30 22Z" fill="#E9A228" opacity="0.7"/>
+        <rect x="19" y="19" width="6" height="6" rx="1" fill="#E9A228" opacity="0.9"/>
+      </svg>
+      <div class="brand-name">
+        <span class="brand-soj">SOJ</span>
+        <span class="brand-holdings">Holdings</span>
+      </div>
+    </div>
+    <nav id="main-nav">
+      <button class="nav-btn active" data-tab="dashboard" onclick="switchTab('dashboard',this)">▦ Dashboard</button>
+      <button class="nav-btn" data-tab="invoices" onclick="switchTab('invoices',this)">◈ Invoices <span id="inv-badge" class="nav-badge hidden">0</span></button>
+      <button class="nav-btn" data-tab="pos" onclick="switchTab('pos',this)">◉ Purchase Orders <span id="po-badge" class="nav-badge hidden">0</span></button>
+      <button class="nav-btn" id="users-nav-btn" onclick="switchTab('users',this)" style="display:none">◎ Users</button>
+    </nav>
+    <div class="header-user">
+      <div class="user-info">
+        <span class="user-name" id="header-user-name"></span>
+      </div>
+      <button class="btn-signout" onclick="signOut()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- ── DASHBOARD ── -->
+  <div id="tab-dashboard" class="container">
+
+    <!-- Hero -->
+    <div class="hero" id="hero-block">
+      <div class="hero-label">Total Cash on Hand</div>
+      <div class="hero-amount" id="hero-total">—</div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-label">Net Cash (after C/C)</div>
+          <div class="hero-stat-val text-green" id="hero-net">—</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Credit Balances</div>
+          <div class="hero-stat-val text-red" id="hero-credit">—</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">Avail. Credit</div>
+          <div class="hero-stat-val text-gold" id="hero-avail">—</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-label">MACU Holdings</div>
+          <div class="hero-stat-val" id="hero-macu">—</div>
+        </div>
+        <div class="hero-stat" id="hero-chase-wrap">
+          <div class="hero-stat-label">Chase Holdings</div>
+          <div class="hero-stat-val" id="hero-chase">—</div>
+        </div>
+      </div>
+      <div class="hero-ar-ap">
+        <div class="hero-ar-ap-item" onclick="switchTab('invoices')">
+          <div class="hero-ar-ap-label">AR — Receivable</div>
+          <div class="hero-ar-ap-row">
+            <span class="hero-ar-ap-val text-gold" id="hero-ar">$0.00</span>
+            <span class="count-pill" id="hero-ar-count" style="background:rgba(233,162,40,0.15);color:var(--gold)">0</span>
+          </div>
+        </div>
+        <div class="hero-ar-ap-item" onclick="switchTab('pos')">
+          <div class="hero-ar-ap-label">AP — Payable</div>
+          <div class="hero-ar-ap-row">
+            <span class="hero-ar-ap-val text-red" id="hero-ap">$0.00</span>
+            <span class="count-pill" id="hero-ap-count" style="background:rgba(200,120,110,0.15);color:var(--red)">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entity Summary Cards -->
+    <div class="entity-grid" id="entity-grid"></div>
+
+    <!-- HSRF Section -->
+    <div class="hsrf-section">
+      <div class="hsrf-header">
+        <div class="hsrf-icon">🕊️</div>
+        <div>
+          <div class="hsrf-title">Holy Scripture Research Foundation</div>
+          <div class="hsrf-sub">HSRF · Donated Funds Tracker</div>
+        </div>
+      </div>
+      <div class="hsrf-stats">
+        <div class="hsrf-stat">
+          <div class="hsrf-stat-label">Total Raised</div>
+          <div class="hsrf-stat-val" style="color:#7EB8E8" id="hsrf-raised">$0.00</div>
+          <div class="hsrf-stat-sub" id="hsrf-donor-count">0 donors</div>
+        </div>
+        <div class="hsrf-stat">
+          <div class="hsrf-stat-label">Funds Disbursed</div>
+          <div class="hsrf-stat-val text-muted" id="hsrf-disbursed">$0.00</div>
+          <div class="hsrf-stat-sub">spent to date</div>
+        </div>
+        <div class="hsrf-stat">
+          <div class="hsrf-stat-label">Remaining Balance</div>
+          <div class="hsrf-stat-val text-gold" id="hsrf-remaining">$0.00</div>
+          <div class="hsrf-stat-sub">available to deploy</div>
+        </div>
+        <div class="hsrf-stat">
+          <div class="hsrf-stat-label">Campaign Goal</div>
+          <div class="hsrf-stat-val" style="color:#9B7EC8" id="hsrf-goal-disp">$0.00</div>
+          <div class="hsrf-stat-sub" id="hsrf-pct">— % funded</div>
+        </div>
+      </div>
+      <div class="hsrf-progress-wrap">
+        <div class="hsrf-progress-label">
+          <span>Campaign Progress</span>
+          <span id="hsrf-progress-pct">0%</span>
+        </div>
+        <div class="hsrf-progress-bar">
+          <div class="hsrf-progress-fill" id="hsrf-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div id="hsrf-edit-row" class="hsrf-edit-row hidden">
+        <div>
+          <div class="xsmall text-muted mb-12" style="margin-bottom:4px">Total Raised ($)</div>
+          <input class="hsrf-input" type="number" id="hsrf-in-raised" step="0.01" placeholder="0.00" />
+        </div>
+        <div>
+          <div class="xsmall text-muted mb-12" style="margin-bottom:4px">Disbursed ($)</div>
+          <input class="hsrf-input" type="number" id="hsrf-in-disbursed" step="0.01" placeholder="0.00" />
+        </div>
+        <div>
+          <div class="xsmall text-muted mb-12" style="margin-bottom:4px">Campaign Goal ($)</div>
+          <input class="hsrf-input" type="number" id="hsrf-in-goal" step="0.01" placeholder="0.00" />
+        </div>
+        <div>
+          <div class="xsmall text-muted mb-12" style="margin-bottom:4px">Donor Count</div>
+          <input class="hsrf-input" type="number" id="hsrf-in-donors" step="1" placeholder="0" />
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:6px">
+          <button class="btn-sm btn-blue" onclick="saveHsrf()">Save</button>
+          <button class="btn-sm btn-ghost" onclick="toggleHsrfEdit(false)">Cancel</button>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn-sm btn-blue" id="hsrf-edit-btn" onclick="toggleHsrfEdit(true)">✎ Update Figures</button>
+      </div>
+    </div>
+
+    <!-- Connect Banks section -->
+    <div class="connect-section" id="connect-section">
+      <div class="connect-header">
+        <div>
+          <div class="connect-title">Bank Connections</div>
+          <div class="connect-sub">Connect live bank accounts via Plaid</div>
+        </div>
+      </div>
+      <div class="entity-connect-grid" id="connect-grid"></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-row" id="filter-row">
+      <div class="filter-group">
+        <span class="filter-label">Bank</span>
+        <button class="chip active" onclick="setFilter('bank','All',this)">All</button>
+        <button class="chip" onclick="setFilter('bank','MACU',this)">MACU</button>
+        <button class="chip" onclick="setFilter('bank','Chase',this)" id="chase-filter">Chase</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Entity</span>
+        <button class="chip active" onclick="setFilter('entity','All',this)">All</button>
+        <button class="chip" onclick="setFilter('entity','SOJ',this)" id="filt-SOJ">Stick of Joseph</button>
+        <button class="chip" onclick="setFilter('entity','PPP',this)" id="filt-PPP">Plain & Precious</button>
+        <button class="chip" onclick="setFilter('entity','ST',this)" id="filt-ST">Saint Threads</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Type</span>
+        <button class="chip active" onclick="setFilter('type','All',this)">All</button>
+        <button class="chip" onclick="setFilter('type','Checking',this)">Checking</button>
+        <button class="chip" onclick="setFilter('type','Savings',this)">Savings</button>
+        <button class="chip" onclick="setFilter('type','Visa',this)">Visa</button>
+      </div>
+    </div>
+    <div class="accounts-grid" id="accounts-grid"></div>
+
+    <div style="padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+      <span class="xsmall text-muted">SOJ Holdings · Treasury Portal</span>
+      <span class="xsmall text-muted" id="dash-footer-info"></span>
+    </div>
+  </div>
+
+  <!-- ── INVOICES ── -->
+  <div id="tab-invoices" class="container hidden">
+    <div id="inv-list-view">
+      <div class="page-header">
+        <div>
+          <div class="page-sub">Accounts Receivable</div>
+          <div class="page-title">Invoices</div>
+        </div>
+        <button class="btn-gold" onclick="newInvoice()">+ New Invoice</button>
+      </div>
+      <div id="inv-approval-banner" class="approval-banner hidden">
+        <span style="font-size:18px">⚠️</span>
+        <span class="approval-banner-text" id="inv-approval-text"></span>
+      </div>
+      <div class="stats-grid" id="inv-stats"></div>
+      <div class="table-wrap">
+        <table><thead><tr>
+          <th>Invoice #</th><th>Entity</th><th>Bill To</th><th>Date</th><th>Due</th><th>Amount</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="inv-tbody"></tbody></table>
+      </div>
+    </div>
+    <div id="inv-form-view" class="hidden"></div>
+    <div id="inv-detail-view" class="hidden"></div>
+  </div>
+
+  <!-- ── PURCHASE ORDERS ── -->
+  <div id="tab-pos" class="container hidden">
+    <div id="po-list-view">
+      <div class="page-header">
+        <div>
+          <div class="page-sub">Accounts Payable</div>
+          <div class="page-title">Purchase Orders</div>
+        </div>
+        <button class="btn-gold" onclick="newPO()">+ New PO</button>
+      </div>
+      <div id="po-approval-banner" class="approval-banner hidden">
+        <span style="font-size:18px">⚠️</span>
+        <span class="approval-banner-text" id="po-approval-text"></span>
+      </div>
+      <div class="stats-grid" id="po-stats"></div>
+      <div class="table-wrap">
+        <table><thead><tr>
+          <th>PO #</th><th>Entity</th><th>Vendor</th><th>Date</th><th>Expected</th><th>Amount</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="po-tbody"></tbody></table>
+      </div>
+    </div>
+    <div id="po-form-view" class="hidden"></div>
+    <div id="po-detail-view" class="hidden"></div>
+  </div>
+
+  <!-- ── USERS ── -->
+  <div id="tab-users" class="container hidden">
+    <div class="page-header">
+      <div>
+        <div class="page-sub">Admin</div>
+        <div class="page-title">User Management</div>
+      </div>
+      <button class="btn-gold" onclick="newUser()">+ New User</button>
+    </div>
+    <div id="user-form-wrap" class="card mb-20 hidden"></div>
+    <div class="table-wrap">
+      <table><thead><tr>
+        <th>User</th><th>Email</th><th>Role</th><th>Brand Access</th><th>Account Visibility</th><th>PIN</th><th></th>
+      </tr></thead>
+      <tbody id="users-tbody"></tbody></table>
+    </div>
+  </div>
+
+</div><!-- /app-screen -->
+
+<!-- Connect Modal -->
+<div class="modal-overlay" id="connect-modal">
+  <div class="modal">
+    <div class="modal-title">Connect Bank Account</div>
+    <div class="modal-sub">Connecting for <strong id="modal-entity-name" style="color:var(--gold)"></strong>. Plaid securely links your bank — we never see your credentials.</div>
+    <div class="modal-actions">
+      <button class="btn-connect" id="modal-connect-btn" onclick="launchPlaidLink()" style="flex:1">🔒 Connect Securely via Plaid</button>
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════
+const API = '';
+const ADMIN_EMAIL = 'admin@thestickofjoseph.com';
+
+const BRANDS = {
+  SOJ: { name: 'The Stick of Joseph', abbr: 'SOJ', color: '#E9A228', bg: '#1A1100' },
+  PPP: { name: 'Plain & Precious Publishing', abbr: 'PPP', color: '#D4BC7E', bg: '#13110A' },
+  ST:  { name: 'Saint Threads', abbr: 'ST', color: '#E8E4DC', bg: '#141412' },
+};
+
+const BRAND_EMAILS = {
+  ST:  ['nicole@saintthreads.com','orders@saintthreads.com'],
+  PPP: ['nicole@plainandprecious.com','orders@plainandprecious.com','bookclub@plainandprecious.com'],
+  SOJ: ['nicole@thestickofjoseph.com','studio@thestickofjoseph.com'],
+};
+
+// Account visibility levels
+// 'all' = can see all accounts for their brands
+// 'checking' = checking only
+// 'none' = no balance data
+const ACCOUNT_LEVELS = {
+  all: 'All Accounts',
+  checking: 'Checking Only',
+  savings: 'Non-Credit',
+  none: 'No Balance Data',
+};
+
+let USERS = [
+  { id:'u1', name:'Admin', email:'admin@thestickofjoseph.com', role:'admin', brands:['SOJ','PPP','ST'], accountLevel:'all', pin:'1234' },
+  { id:'u2', name:'PPP Manager', email:'orders@plainandprecious.com', role:'member', brands:['PPP'], accountLevel:'all', pin:'2222' },
+  { id:'u3', name:'Saint Threads', email:'orders@saintthreads.com', role:'member', brands:['ST'], accountLevel:'checking', pin:'3333' },
+  { id:'u4', name:'SOJ Team', email:'studio@thestickofjoseph.com', role:'member', brands:['SOJ'], accountLevel:'checking', pin:'4444' },
+];
+
+const ACCOUNTS = [
+  { id:7,  brand:'SOJ', bank:'MACU', type:'Checking', balance:31540.80,  last:8200,   acct:'••••5509' },
+  { id:8,  brand:'SOJ', bank:'MACU', type:'Savings',  balance:61000.00,  last:10000,  acct:'••••5510' },
+  { id:9,  brand:'SOJ', bank:'MACU', type:'Visa',     balance:-4210.44,  last:-1100,  acct:'••••5511', credit:true, limit:15000 },
+  { id:10, brand:'SOJ', bank:'Chase',type:'Checking', balance:44210.00,  last:12000,  acct:'••••9901' },
+  { id:11, brand:'SOJ', bank:'Chase',type:'Savings',  balance:80000.00,  last:15000,  acct:'••••9902' },
+  { id:12, brand:'SOJ', bank:'Chase',type:'Visa',     balance:-5880.00,  last:-2200,  acct:'••••9903', credit:true, limit:20000 },
+  { id:4,  brand:'PPP', bank:'MACU', type:'Checking', balance:9812.33,   last:-580,   acct:'••••4410' },
+  { id:5,  brand:'PPP', bank:'MACU', type:'Savings',  balance:22100.00,  last:2500,   acct:'••••4411' },
+  { id:6,  brand:'PPP', bank:'MACU', type:'Visa',     balance:-1102.75,  last:-89.99, acct:'••••4412', credit:true, limit:8000 },
+  { id:1,  brand:'ST',  bank:'MACU', type:'Checking', balance:18420.55,  last:-1240,  acct:'••••3821' },
+  { id:2,  brand:'ST',  bank:'MACU', type:'Savings',  balance:34750.00,  last:5000,   acct:'••••3822' },
+  { id:3,  brand:'ST',  bank:'MACU', type:'Visa',     balance:-2845.12,  last:-312.49,acct:'••••3823', credit:true, limit:10000 },
+];
+
+const VENDORS = ['Ingram Content Group','Baker & Taylor','Anchor Printing','Custom Ink','Printed Mint','Other'];
+
+const PRODUCTS = {
+  PPP: [
+    { id:'b1', title:'The Plain and Precious Parts', formats:['Hardcover','Paperback','eBook'], prices:{Hardcover:34.99,Paperback:19.99,eBook:9.99} },
+    { id:'b2', title:'Covenant Eyes', formats:['Hardcover','Paperback'], prices:{Hardcover:29.99,Paperback:16.99} },
+    { id:'b3', title:'Light From the Dust', formats:['Hardcover','Paperback','eBook'], prices:{Hardcover:32.99,Paperback:17.99,eBook:8.99} },
+    { id:'b4', title:'The Sealed Portion Commentary', formats:['Hardcover','Paperback'], prices:{Hardcover:39.99,Paperback:22.99} },
+    { id:'b5', title:'Remnant Rising', formats:['Paperback','eBook'], prices:{Paperback:15.99,eBook:7.99} },
+    { id:'b6', title:'Scripture Study Companion', formats:['Hardcover','Paperback','eBook'], prices:{Hardcover:27.99,Paperback:14.99,eBook:6.99} },
+  ],
+  ST: [
+    { id:'s1', title:'Faith & Grit Tee', formats:['S','M','L','XL','2XL'], prices:{S:28,M:28,L:28,XL:30,'2XL':32} },
+    { id:'s2', title:'Grove Member Hoodie', formats:['S','M','L','XL','2XL'], prices:{S:54,M:54,L:54,XL:56,'2XL':58} },
+    { id:'s3', title:'Covenant Hat', formats:['One Size'], prices:{'One Size':34} },
+  ],
+  SOJ: [],
+};
+
+const TAX_PRESETS = [
+  { label:'No Tax', rate:0 },
+  { label:'UT 7.25%', rate:0.0725 },
+  { label:'CA 9.5%', rate:0.095 },
+  { label:'TX 8.25%', rate:0.0825 },
+  { label:'Custom', rate:null },
+];
+
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let currentUser = null;
+let invoices = [];
+let pos = [];
+let savedEmails = [];
+let currentEntity = null;
+let filters = { bank:'All', entity:'All', type:'All' };
+let hsrf = { raised:0, disbursed:0, goal:0, donors:0 };
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+const fmt = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n||0);
+const fmtDate = s => s ? new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+const randId = () => Math.random().toString(36).slice(2,8).toUpperCase();
+const today = () => new Date().toISOString().split('T')[0];
+const addDays = (d,n) => { const dt=new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().split('T')[0]; };
+const isAdmin = () => currentUser?.role === 'admin';
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function switchTab(tab, btnEl) {
+  ['dashboard','invoices','pos','users'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.add('hidden');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  });
+  document.getElementById(`tab-${tab}`).classList.remove('hidden');
+  if (btnEl) btnEl.classList.add('active');
+  else {
+    const nb = document.querySelector(`[data-tab="${tab}"]`);
+    if (nb) nb.classList.add('active');
+  }
+  if (tab==='dashboard') renderDashboard();
+  if (tab==='invoices') renderInvoiceList();
+  if (tab==='pos') renderPOList();
+  if (tab==='users') renderUsers();
+  updateBadges();
+}
+
+// ══════════════════════════════════════════════════════
+// ACCOUNT VISIBILITY FILTER
+// ══════════════════════════════════════════════════════
+function visibleAccounts(user, allAccounts) {
+  if (!user) return [];
+  const brandAccounts = allAccounts.filter(a => user.brands.includes(a.brand));
+  const level = user.accountLevel || 'all';
+  if (level === 'all') return brandAccounts;
+  if (level === 'checking') return brandAccounts.filter(a => a.type === 'Checking');
+  if (level === 'savings') return brandAccounts.filter(a => !a.credit);
+  if (level === 'none') return brandAccounts.map(a => ({...a, balance: null, last: null, hidden: true}));
+  return brandAccounts;
+}
+
+// ══════════════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════════════
+function initLogin() {
+  const sel = document.getElementById('login-user-select');
+  sel.innerHTML = '<option value="">Choose your account…</option>';
+  USERS.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.id; opt.textContent = u.name;
+    sel.appendChild(opt);
+  });
+}
+
+function onUserSelect() {
+  const uid = document.getElementById('login-user-select').value;
+  const u = USERS.find(x => x.id === uid);
+  const tagsEl = document.getElementById('login-access-tags');
+  if (u) {
+    tagsEl.style.display = 'flex';
+    tagsEl.innerHTML = u.brands.map(b => `
+      <div class="access-tag" style="background:${BRANDS[b].color}18;border:1px solid ${BRANDS[b].color}33;color:${BRANDS[b].color}">
+        <span style="font-size:12px">◈</span> ${BRANDS[b].name}
+      </div>`).join('');
+  } else {
+    tagsEl.style.display = 'none';
+  }
+  document.getElementById('login-err').classList.add('hidden');
+  document.getElementById('login-pin').value = '';
+}
+
+function doLogin() {
+  const uid = document.getElementById('login-user-select').value;
+  const pin = document.getElementById('login-pin').value;
+  const errEl = document.getElementById('login-err');
+  const u = USERS.find(x => x.id === uid);
+  if (!u) { errEl.textContent = 'Please select a user.'; errEl.classList.remove('hidden'); return; }
+  if (u.pin !== pin) { errEl.textContent = 'Incorrect PIN.'; errEl.classList.remove('hidden'); return; }
+  currentUser = u;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').classList.remove('hidden');
+  document.getElementById('header-user-name').textContent = u.name;
+  if (isAdmin()) document.getElementById('users-nav-btn').style.display = '';
+  switchTab('dashboard');
+}
+
+function signOut() {
+  currentUser = null;
+  document.getElementById('login-screen').style.display = '';
+  document.getElementById('app-screen').classList.add('hidden');
+  document.getElementById('login-pin').value = '';
+  document.getElementById('login-user-select').value = '';
+  document.getElementById('login-access-tags').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════
+function renderDashboard() {
+  const userAccts = visibleAccounts(currentUser, ACCOUNTS);
+  const allVisible = userAccts.filter(a => !a.hidden);
+
+  const assets = allVisible.filter(a=>!a.credit).reduce((s,a)=>s+(a.balance||0),0);
+  const debt   = allVisible.filter(a=>a.credit).reduce((s,a)=>s+(a.balance||0),0);
+  const net    = assets + debt;
+  const avail  = allVisible.filter(a=>a.credit).reduce((s,a)=>s+((a.limit||0)+(a.balance||0)),0);
+  const macu   = allVisible.filter(a=>!a.credit&&a.bank==='MACU').reduce((s,a)=>s+(a.balance||0),0);
+  const chase  = allVisible.filter(a=>!a.credit&&a.bank==='Chase').reduce((s,a)=>s+(a.balance||0),0);
+
+  document.getElementById('hero-total').textContent = fmt(assets);
+  document.getElementById('hero-net').textContent   = fmt(net);
+  document.getElementById('hero-credit').textContent= fmt(debt);
+  document.getElementById('hero-avail').textContent = fmt(avail);
+  document.getElementById('hero-macu').textContent  = fmt(macu);
+  document.getElementById('hero-chase').textContent = fmt(chase);
+  if (!chase) document.getElementById('hero-chase-wrap').style.display='none';
+
+  // AR/AP
+  const arTotal = invoices.filter(i=>['Sent','Partial'].includes(i.status)&&currentUser.brands.includes(i.entity)).reduce((s,i)=>s+calcInvTotal(i),0);
+  const arCount = invoices.filter(i=>['Sent','Partial'].includes(i.status)&&currentUser.brands.includes(i.entity)).length;
+  const apTotal = pos.filter(p=>['Sent','Approved','Partial'].includes(p.status)&&currentUser.brands.includes(p.entity)).reduce((s,p)=>s+calcPOTotal(p),0);
+  const apCount = pos.filter(p=>['Sent','Approved','Partial'].includes(p.status)&&currentUser.brands.includes(p.entity)).length;
+  document.getElementById('hero-ar').textContent=fmt(arTotal);
+  document.getElementById('hero-ar-count').textContent=arCount;
+  document.getElementById('hero-ap').textContent=fmt(apTotal);
+  document.getElementById('hero-ap-count').textContent=apCount;
+
+  // Entity cards
+  const brands = currentUser.brands;
+  const grid = document.getElementById('entity-grid');
+  grid.innerHTML = brands.map(b => {
+    const ba = allVisible.filter(a=>a.brand===b);
+    const bAssets = ba.filter(a=>!a.credit).reduce((s,a)=>s+(a.balance||0),0);
+    const bDebt   = ba.filter(a=>a.credit).reduce((s,a)=>s+(a.balance||0),0);
+    const bNet    = bAssets+bDebt;
+    const bMACU   = ba.filter(a=>!a.credit&&a.bank==='MACU').reduce((s,a)=>s+(a.balance||0),0);
+    const bChase  = ba.filter(a=>!a.credit&&a.bank==='Chase').reduce((s,a)=>s+(a.balance||0),0);
+    const br = BRANDS[b];
+    return `<div class="entity-card" style="--ec:${br.color}">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${br.color}88,transparent)"></div>
+      <div class="entity-top">
+        <div style="width:34px;height:34px;border-radius:8px;background:${br.color}18;border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;font-size:13px;color:${br.color};font-weight:700;flex-shrink:0">${br.abbr}</div>
+        <span class="entity-name">${br.name}</span>
+      </div>
+      <div class="entity-net">${currentUser.accountLevel==='none'?'—':fmt(bNet)}</div>
+      <div class="entity-breakdown">
+        <span class="entity-stat text-green">↑ ${fmt(bAssets)}</span>
+        <span class="entity-stat text-red">↓ ${fmt(Math.abs(bDebt))}</span>
+      </div>
+      <div class="entity-banks xsmall text-muted">MACU ${fmt(bMACU)}${bChase?' · Chase '+fmt(bChase):''}</div>
+    </div>`;
+  }).join('');
+
+  // HSRF
+  renderHsrf();
+
+  // Connect grid
+  const cgrid = document.getElementById('connect-grid');
+  cgrid.innerHTML = brands.map(b => {
+    const br = BRANDS[b];
+    return `<div class="entity-connect-card">
+      <div class="entity-connect-top">
+        <div style="width:28px;height:28px;border-radius:6px;background:${br.color}18;border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;font-size:10px;color:${br.color};font-weight:700;flex-shrink:0">${br.abbr}</div>
+        <div style="flex:1"><div style="font-size:12px;color:${br.color};margin-bottom:1px">${br.name}</div>
+        <div class="xsmall text-muted">Connect live bank data</div></div>
+        <div class="status-dot disconnected"></div>
+      </div>
+      <button class="btn-connect" onclick="openConnectModal('${b}')">🔒 Connect Bank Account</button>
+    </div>`;
+  }).join('');
+
+  // Accounts grid
+  renderAccounts();
+  document.getElementById('dash-footer-info').textContent = `${brands.length} entities · ${allVisible.length} accounts`;
+}
+
+function renderAccounts() {
+  const userAccts = visibleAccounts(currentUser, ACCOUNTS);
+  let filtered = userAccts.filter(a => !a.hidden);
+  if (filters.bank !== 'All') filtered = filtered.filter(a => a.bank === filters.bank);
+  if (filters.entity !== 'All') filtered = filtered.filter(a => a.brand === filters.entity);
+  if (filters.type !== 'All') filtered = filtered.filter(a => a.type === filters.type);
+
+  const grid = document.getElementById('accounts-grid');
+  if (!filtered.length) { grid.innerHTML = '<div class="empty-state">No accounts match filters.</div>'; return; }
+
+  grid.innerHTML = filtered.map(a => {
+    const br = BRANDS[a.brand];
+    const availCredit = a.credit ? (a.limit||0)+(a.balance||0) : null;
+    const typeIcon = a.type==='Checking'?'▭':a.type==='Savings'?'⏱':'▣';
+    return `<div class="acct-card">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${br.color}55,transparent)"></div>
+      <div class="acct-top">
+        <div class="acct-left">
+          <div style="width:26px;height:26px;border-radius:6px;background:${br.color}18;border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;font-size:9px;color:${br.color};font-weight:700;flex-shrink:0">${br.abbr}</div>
+          <div>
+            <div class="acct-type-row">
+              <span class="acct-type-icon" style="color:${br.color}">${typeIcon}</span>
+              <span class="acct-type-text">${a.type}</span>
+            </div>
+            <div class="acct-mask">${a.acct}</div>
+          </div>
+        </div>
+        <span class="acct-bank-tag" style="background:${br.color}18;color:${br.color}">${a.bank}</span>
+      </div>
+      <div class="acct-amount" style="color:${(a.balance||0)<0?'var(--red)':'var(--cream)'}">${fmt(a.balance)}</div>
+      ${availCredit!==null?`<div class="acct-credit">Avail. credit: ${fmt(availCredit)}</div>`:''}
+      <div class="acct-footer">
+        <span class="acct-entity xsmall text-muted">${br.name}</span>
+        ${a.last!==null&&a.last!==0?`<span class="acct-change" style="color:${(a.last||0)>0?'var(--green)':'var(--red)'}">${(a.last||0)>0?'+':''}${fmt(a.last)}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(key, val, el) {
+  filters[key] = val;
+  const group = el.closest('.filter-group');
+  group.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderAccounts();
+}
+
+// ══════════════════════════════════════════════════════
+// HSRF
+// ══════════════════════════════════════════════════════
+function renderHsrf() {
+  document.getElementById('hsrf-raised').textContent = fmt(hsrf.raised);
+  document.getElementById('hsrf-disbursed').textContent = fmt(hsrf.disbursed);
+  document.getElementById('hsrf-remaining').textContent = fmt(hsrf.raised - hsrf.disbursed);
+  document.getElementById('hsrf-goal-disp').textContent = fmt(hsrf.goal);
+  document.getElementById('hsrf-donor-count').textContent = `${hsrf.donors} donor${hsrf.donors!==1?'s':''}`;
+  const pct = hsrf.goal > 0 ? Math.min(100, Math.round(hsrf.raised / hsrf.goal * 100)) : 0;
+  document.getElementById('hsrf-pct').textContent = `${pct}% funded`;
+  document.getElementById('hsrf-progress-pct').textContent = `${pct}%`;
+  document.getElementById('hsrf-bar').style.width = pct + '%';
+}
+
+function toggleHsrfEdit(show) {
+  document.getElementById('hsrf-edit-row').classList.toggle('hidden', !show);
+  document.getElementById('hsrf-edit-btn').classList.toggle('hidden', show);
+  if (show) {
+    document.getElementById('hsrf-in-raised').value = hsrf.raised || '';
+    document.getElementById('hsrf-in-disbursed').value = hsrf.disbursed || '';
+    document.getElementById('hsrf-in-goal').value = hsrf.goal || '';
+    document.getElementById('hsrf-in-donors').value = hsrf.donors || '';
+  }
+}
+
+function saveHsrf() {
+  hsrf.raised     = parseFloat(document.getElementById('hsrf-in-raised').value)||0;
+  hsrf.disbursed  = parseFloat(document.getElementById('hsrf-in-disbursed').value)||0;
+  hsrf.goal       = parseFloat(document.getElementById('hsrf-in-goal').value)||0;
+  hsrf.donors     = parseInt(document.getElementById('hsrf-in-donors').value)||0;
+  toggleHsrfEdit(false);
+  renderHsrf();
+  showToast('HSRF figures updated ✓', 'success');
+}
+
+// ══════════════════════════════════════════════════════
+// PLAID
+// ══════════════════════════════════════════════════════
+function openConnectModal(brandKey) {
+  currentEntity = brandKey;
+  document.getElementById('modal-entity-name').textContent = BRANDS[brandKey].name;
+  document.getElementById('connect-modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('connect-modal').classList.remove('active');
+  currentEntity = null;
+}
+
+async function launchPlaidLink() {
+  const btn = document.getElementById('modal-connect-btn');
+  btn.textContent = '⏳ Opening secure connection…';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/api/create-link-token`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ entity_name: BRANDS[currentEntity]?.name, user_id: currentEntity?.toLowerCase() }),
+    });
+    const { link_token, error } = await res.json();
+    if (error || !link_token) throw new Error(error || 'Could not get link token');
+
+    const handler = Plaid.create({
+      token: link_token,
+      onSuccess: async (public_token, metadata) => {
+        closeModal();
+        showToast('Bank connected! Saving…', 'success');
+        const exRes = await fetch(`${API}/api/exchange-token`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ public_token, entity_name: BRANDS[currentEntity]?.name, institution_name: metadata.institution?.name||'Bank' }),
+        });
+        const exData = await exRes.json();
+        if (exData.success) showToast(`✅ ${metadata.institution?.name||'Bank'} connected!`, 'success');
+        else showToast('Connection saved but could not verify.', 'error');
+        renderDashboard();
+      },
+      onExit: (err) => {
+        btn.textContent = '🔒 Connect Securely via Plaid';
+        btn.disabled = false;
+        if (err) showToast('Connection cancelled or failed.', 'error');
+      },
+      onEvent: () => {},
+    });
+    closeModal();
+    handler.open();
+  } catch(err) {
+    btn.textContent = '🔒 Connect Securely via Plaid';
+    btn.disabled = false;
+    showToast(`Error: ${err.message}`, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// INVOICE HELPERS
+// ══════════════════════════════════════════════════════
+function calcLineTotal(line) {
+  const sub = line.qty * line.unitPrice;
+  const disc = line.discountType==='%' ? sub*(line.discount/100) : Math.min(line.discount, sub);
+  return sub - disc;
+}
+
+function calcInvTotal(inv) {
+  const sub = inv.lines.reduce((s,l)=>s+calcLineTotal(l),0);
+  const ws  = inv.wholesale ? sub*(1-inv.wholesalePct/100) : sub;
+  return ws * (1+(inv.taxEntry||0));
+}
+
+function calcPOTotal(po) {
+  const sub = po.lines.reduce((s,l)=>s+l.qty*l.unitCost,0);
+  return sub*(1+(po.taxEntry||0))+(po.shippingCost||0);
+}
+
+function newInvLine() { return { id:randId(), productId:'', format:'', qty:1, unitPrice:0, discount:0, discountType:'%' }; }
+function newPOLine()  { return { id:randId(), description:'', qty:1, unitCost:0, unit:'ea' }; }
+
+function newInvoice() {
+  const brands = currentUser.brands;
+  const inv = {
+    id:'INV-'+randId(), entity:brands[0]||'PPP', date:today(), dueDate:addDays(today(),30),
+    billTo:{name:'',company:'',email:'',address:''},
+    lines:[newInvLine()], extraEmails:[], taxEntry:0, taxLabel:'No Tax',
+    notes:'', status:'Draft', wholesale:false, wholesalePct:40,
+    submittedBy:'', needsApproval:false,
+  };
+  renderInvoiceForm(inv);
+}
+
+function newPO() {
+  const brands = currentUser.brands;
+  const po = {
+    id:'PO-'+randId(), entity:brands[0]||'PPP', vendor:'', date:today(), expectedDate:addDays(today(),14),
+    shipTo:{name:'',address:''},
+    lines:[newPOLine()], extraEmails:[], taxEntry:0, taxLabel:'No Tax',
+    shippingCost:0, notes:'', status:'Draft', submittedBy:'', needsApproval:false,
+  };
+  renderPOForm(po);
+}
+
+// ══════════════════════════════════════════════════════
+// INVOICE LIST
+// ══════════════════════════════════════════════════════
+function updateBadges() {
+  const myInvs = isAdmin() ? invoices : invoices.filter(i=>currentUser.brands.includes(i.entity));
+  const myPos  = isAdmin() ? pos : pos.filter(p=>currentUser.brands.includes(p.entity));
+  const invBadge = myInvs.filter(i=>['Sent','Partial'].includes(i.status)).length + (isAdmin()?myInvs.filter(i=>i.needsApproval).length:0);
+  const poBadge  = myPos.filter(p=>['Sent','Approved','Partial'].includes(p.status)).length + (isAdmin()?myPos.filter(p=>p.needsApproval).length:0);
+  const ib = document.getElementById('inv-badge');
+  const pb = document.getElementById('po-badge');
+  ib.textContent = invBadge; ib.classList.toggle('hidden', invBadge===0);
+  pb.textContent = poBadge; pb.classList.toggle('hidden', poBadge===0);
+}
+
+function renderInvoiceList() {
+  showView('inv','list');
+  const myInvs = isAdmin() ? invoices : invoices.filter(i=>currentUser.brands.includes(i.entity));
+  const pending = isAdmin() ? myInvs.filter(i=>i.needsApproval).length : 0;
+  const banner = document.getElementById('inv-approval-banner');
+  if (pending>0) { banner.classList.remove('hidden'); document.getElementById('inv-approval-text').textContent=`${pending} invoice${pending>1?'s':''} pending your approval`; }
+  else banner.classList.add('hidden');
+
+  const ar = myInvs.filter(i=>['Sent','Partial'].includes(i.status)).reduce((s,i)=>s+calcInvTotal(i),0);
+  const paid = myInvs.filter(i=>i.status==='Paid').reduce((s,i)=>s+calcInvTotal(i),0);
+  document.getElementById('inv-stats').innerHTML = [
+    ['Outstanding (AR)', fmt(ar), 'var(--gold)'],
+    ['Paid This Month', fmt(paid), 'var(--green)'],
+    ['Draft', myInvs.filter(i=>i.status==='Draft').length+' invoices', 'var(--text-muted)'],
+    isAdmin()?['Pending Approval', pending+' invoices','var(--red)']:['Overdue', myInvs.filter(i=>i.status==='Overdue').length+' invoices','var(--red)'],
+  ].map(([l,v,c])=>`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-val" style="color:${c}">${v}</div></div>`).join('');
+
+  const tbody = document.getElementById('inv-tbody');
+  if (!myInvs.length) { tbody.innerHTML='<tr><td colspan="8" class="empty-state">No invoices yet.</td></tr>'; return; }
+  tbody.innerHTML = myInvs.map(inv=>{
+    const br=BRANDS[inv.entity]||BRANDS.PPP;
+    const sc=inv.status==='Paid'?'var(--green)':inv.status==='Overdue'?'var(--red)':inv.status==='Sent'||inv.needsApproval?'var(--gold)':'var(--text-muted)';
+    return `<tr onclick="viewInvoice('${inv.id}')">
+      <td style="color:${br.color};font-size:12px">${inv.id}</td>
+      <td><span style="font-size:10px;color:${br.color};font-weight:700">${inv.entity}</span></td>
+      <td>${inv.billTo?.name||'—'}</td>
+      <td class="td-muted">${inv.date}</td>
+      <td class="td-muted">${inv.dueDate}</td>
+      <td>${fmt(calcInvTotal(inv))}</td>
+      <td><span class="status-pill" style="border:1px solid ${sc}44;color:${sc}">${inv.status}</span>${inv.submittedBy?`<div class="xsmall text-muted">by ${inv.submittedBy}</div>`:''}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="flex-gap">
+          <button class="btn-ghost" onclick="editInvoice('${inv.id}')">Edit</button>
+          ${isAdmin()&&inv.needsApproval?`<button class="btn-gold" style="padding:4px 9px;font-size:10px" onclick="approveInvoice('${inv.id}')">Approve ✓</button>`:''}
+          ${['Sent','Partial','Overdue'].includes(inv.status)?`<button class="btn-ghost" onclick="remindInvoice('${inv.id}')">Remind</button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  updateBadges();
+}
+
+// ══════════════════════════════════════════════════════
+// INVOICE FORM
+// ══════════════════════════════════════════════════════
+function renderInvoiceForm(inv) {
+  showView('inv','form');
+  let data = {...inv, lines:[...inv.lines.map(l=>({...l}))], billTo:{...inv.billTo}, extraEmails:[...(inv.extraEmails||[])]};
+
+  function getProds() { return PRODUCTS[data.entity]||[]; }
+  function subTotal() { return data.lines.reduce((s,l)=>s+calcLineTotal(l),0); }
+  function wsTotal() { return data.wholesale ? subTotal()*(1-data.wholesalePct/100) : subTotal(); }
+  function taxAmt() { return wsTotal()*(data.taxEntry||0); }
+  function grandTotal() { return wsTotal()+taxAmt(); }
+
+  function render() {
+    const prods = getProds();
+    const sub = subTotal(), ws = wsTotal(), tax = taxAmt(), grand = grandTotal();
+    document.getElementById('inv-form-view').innerHTML = `
+      <button class="back-btn" onclick="renderInvoiceList()">← Back to Invoices</button>
+      <div class="flex-between mb-20">
+        <div><div class="xsmall text-muted mb-12" style="margin-bottom:2px">${data.id}</div>
+        <div class="page-title">${invoices.find(i=>i.id===data.id)?'Edit Invoice':'New Invoice'}</div></div>
+        ${!isAdmin()?`<span class="status-pill" style="color:var(--gold);border:1px solid rgba(233,162,40,0.3)">Requires Admin Approval</span>`:''}
+      </div>
+      <div class="form-grid mb-16">
+        <div class="card">
+          <div class="xsmall text-muted mb-12" style="margin-bottom:10px;letter-spacing:0.12em;text-transform:uppercase">Invoice Details</div>
+          <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-field"><div class="xsmall text-muted" style="margin-bottom:4px">Entity</div>
+              <select class="form-input" onchange="data.entity=this.value;data.lines=[newInvLine()];render()">
+                ${currentUser.brands.map(b=>`<option value="${b}" ${data.entity===b?'selected':''}>${BRANDS[b].name}</option>`).join('')}
+              </select></div>
+            <div class="form-field"><div class="xsmall text-muted" style="margin-bottom:4px">Status</div>
+              <select class="form-input" onchange="data.status=this.value">
+                ${['Draft','Sent','Partial','Paid','Overdue'].map(s=>`<option ${data.status===s?'selected':''}>${s}</option>`).join('')}
+              </select></div>
+            <div class="form-field"><div class="xsmall text-muted" style="margin-bottom:4px">Invoice Date</div>
+              <input type="date" class="form-input" value="${data.date}" onchange="data.date=this.value"/></div>
+            <div class="form-field"><div class="xsmall text-muted" style="margin-bottom:4px">Due Date</div>
+              <input type="date" class="form-input" value="${data.dueDate}" onchange="data.dueDate=this.value"/></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="xsmall text-muted mb-12" style="margin-bottom:10px;letter-spacing:0.12em;text-transform:uppercase">Bill To</div>
+          ${['name','company','email','address'].map(f=>`
+            <div class="form-field"><div class="xsmall text-muted" style="margin-bottom:4px;text-transform:capitalize">${f}</div>
+            <input class="form-input" value="${data.billTo[f]||''}" placeholder="${f}" onchange="data.billTo['${f}']=this.value"/></div>
+          `).join('')}
+        </div>
+      </div>
+      ${renderEmailField(data)}
+      <div class="card mb-16">
+        <div class="flex-between mb-16">
+          <div class="xsmall text-muted" style="letter-spacing:0.12em;text-transform:uppercase">Line Items</div>
+          <button class="btn-ghost" onclick="data.lines.push(newInvLine());render()">+ Add Line</button>
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            ${['Product','Format','Qty','Unit Price','Discount','Line Total',''].map(h=>`<th style="font-size:9px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">${h}</th>`).join('')}
+          </tr></thead>
+          <tbody>${data.lines.map(l=>{
+            const prod = prods.find(p=>p.id===l.productId);
+            return `<tr style="border-bottom:1px solid #141416">
+              <td style="padding:6px 8px;min-width:160px">
+                <select class="form-input" style="font-size:11px" onchange="onInvProductChange('${l.id}',this.value,data)">
+                  <option value="">Select…</option>
+                  ${prods.map(p=>`<option value="${p.id}" ${l.productId===p.id?'selected':''}>${p.title}</option>`).join('')}
+                </select></td>
+              <td style="padding:6px 8px;min-width:90px">
+                ${prod?`<select class="form-input" style="font-size:11px" onchange="onInvFormatChange('${l.id}','${l.productId}',this.value,data)">
+                  ${prod.formats.map(f=>`<option ${l.format===f?'selected':''}>${f}</option>`).join('')}
+                </select>`:`<input class="form-input" style="font-size:11px;width:80px" value="${l.format||''}" onchange="updateLine('${l.id}','format',this.value,data)"/>`}
+              </td>
+              <td style="padding:6px 8px"><input type="number" min="1" class="form-input" style="width:50px;text-align:center" value="${l.qty}" onchange="updateLine('${l.id}','qty',+this.value,data)"/></td>
+              <td style="padding:6px 8px"><input type="number" step="0.01" class="form-input" style="width:75px" value="${l.unitPrice}" onchange="updateLine('${l.id}','unitPrice',+this.value,data)"/></td>
+              <td style="padding:6px 8px"><div style="display:flex;gap:3px">
+                <input type="number" min="0" class="form-input" style="width:48px" value="${l.discount}" onchange="updateLine('${l.id}','discount',+this.value,data)"/>
+                <select class="form-input" style="padding:7px 4px;font-size:11px" onchange="updateLine('${l.id}','discountType',this.value,data)">
+                  <option ${l.discountType==='%'?'selected':''}>%</option><option ${l.discountType==='$'?'selected':''}>$</option>
+                </select></div></td>
+              <td style="padding:6px 8px;font-size:13px;text-align:right">${fmt(calcLineTotal(l))}</td>
+              <td style="padding:6px 8px"><button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px" onclick="data.lines=data.lines.filter(x=>x.id!=='${l.id}');render()">×</button></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+      <div class="form-grid mb-20" style="grid-template-columns:1fr 280px">
+        <div class="card"><div class="xsmall text-muted mb-12" style="margin-bottom:8px;letter-spacing:0.12em;text-transform:uppercase">Notes / Terms</div>
+          <textarea class="form-input" rows="4" placeholder="Payment terms, notes…" onchange="data.notes=this.value">${data.notes||''}</textarea></div>
+        <div class="card">
+          <div class="xsmall text-muted mb-12" style="margin-bottom:10px;letter-spacing:0.12em;text-transform:uppercase">Pricing Options</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-size:12px;color:var(--text-dim)">Wholesale</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <button class="switch ${data.wholesale?'on':'off'}" onclick="data.wholesale=!data.wholesale;render()"><div class="switch-thumb"></div></button>
+              ${data.wholesale?`<input type="number" min="0" max="100" class="form-input" style="width:42px;padding:4px 6px;font-size:12px" value="${data.wholesalePct}" onchange="data.wholesalePct=+this.value;render()"/>
+              <span style="font-size:11px;color:var(--text-muted)">% off</span>`:''}
+            </div>
+          </div>
+          <div class="xsmall text-muted" style="margin-bottom:6px">Tax Rate</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
+            ${TAX_PRESETS.map(t=>`<button class="chip ${data.taxLabel===t.label?'active':''}" onclick="data.taxLabel='${t.label}';data.taxEntry=${t.rate===null?data.taxEntry:t.rate};render()">${t.label}</button>`).join('')}
+          </div>
+          ${data.taxLabel==='Custom'?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px">
+            <input type="number" step="0.01" min="0" max="100" class="form-input" style="width:56px;font-size:12px" value="${+(data.taxEntry*100).toFixed(3)}" onchange="data.taxEntry=+this.value/100;render()"/>
+            <span style="font-size:11px;color:var(--text-muted)">%</span></div>`:''}
+          <div style="border-top:1px solid var(--border);padding-top:10px">
+            <div class="summary-row"><span>Subtotal</span><span>${fmt(sub)}</span></div>
+            ${data.wholesale?`<div class="summary-row"><span>Wholesale (${data.wholesalePct}% off)</span><span style="color:var(--green)">${fmt(ws-sub)}</span></div>`:''}
+            ${data.taxEntry>0?`<div class="summary-row"><span>Tax (${(data.taxEntry*100).toFixed(2)}%)</span><span>${fmt(tax)}</span></div>`:''}
+            <div class="summary-total"><span>Total</span><span>${fmt(grand)}</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn-ghost" onclick="renderInvoiceList()">Cancel</button>
+        <button class="btn-ghost" onclick="saveInvoice(data,'Draft')">Save Draft</button>
+        <button class="btn-gold" onclick="saveInvoice(data,'${isAdmin()?'Sent':'Pending Approval'}')">${isAdmin()?'Save & Send ✉':'Submit for Approval →'}</button>
+      </div>`;
+
+    // Wire email recipients dynamically
+    const emailCont = document.getElementById('email-recipients-'+data.entity);
+    if (emailCont) wireEmailField(emailCont, data);
+  }
+
+  render();
+}
+
+function renderEmailField(data) {
+  const existing = (BRAND_EMAILS[data.entity]||[]).concat(savedEmails).filter((e,i,a)=>a.indexOf(e)===i&&e!==ADMIN_EMAIL);
+  return `<div class="card mb-16" id="email-card-${data.entity}">
+    <div class="xsmall text-muted mb-12" style="margin-bottom:10px;letter-spacing:0.12em;text-transform:uppercase">Email Recipients</div>
+    <div class="email-row email-always">
+      <div class="dot-gold"></div>
+      <span style="font-size:12px;color:var(--gold);flex:1">${ADMIN_EMAIL}</span>
+      <span class="xsmall text-muted">always notified</span>
+    </div>
+    ${(data.extraEmails||[]).map(e=>`
+      <div class="email-row">
+        <span style="font-size:12px;flex:1">${e}</span>
+        <button class="remove-btn" onclick="removeEmail('${e}',data);renderInvoiceForm(data)">×</button>
+      </div>`).join('')}
+    <select class="form-input mt-12" style="margin-top:8px;font-size:11px;margin-bottom:6px" onchange="addEmailFromSelect(this,data)">
+      <option value="">+ Add from saved contacts…</option>
+      ${existing.filter(e=>!(data.extraEmails||[]).includes(e)).map(e=>`<option value="${e}">${e}</option>`).join('')}
+    </select>
+    <div style="display:flex;gap:6px;margin-top:4px">
+      <input id="new-email-inp" class="form-input" style="flex:1;font-size:11px" placeholder="new@email.com — saved for future use"
+        onkeydown="if(event.key==='Enter'){addCustomEmail(this.value,data);this.value='';renderInvoiceForm(data)}"/>
+      <button class="btn-ghost" onclick="const v=document.getElementById('new-email-inp').value;addCustomEmail(v,data);document.getElementById('new-email-inp').value='';renderInvoiceForm(data)">Add</button>
+    </div>
+  </div>`;
+}
+
+function addEmailFromSelect(sel, data) {
+  const v = sel.value;
+  if (v && !(data.extraEmails||[]).includes(v)) {
+    data.extraEmails = [...(data.extraEmails||[]), v];
+    renderInvoiceForm(data);
+  }
+}
+
+function addCustomEmail(val, data) {
+  val = val.trim().toLowerCase();
+  if (!val) return;
+  if (!(data.extraEmails||[]).includes(val)) data.extraEmails = [...(data.extraEmails||[]), val];
+  if (!savedEmails.includes(val)) savedEmails.push(val);
+}
+
+function removeEmail(email, data) {
+  data.extraEmails = (data.extraEmails||[]).filter(e=>e!==email);
+}
+
+function updateLine(id, key, val, data) {
+  data.lines = data.lines.map(l=>l.id===id?{...l,[key]:val}:l);
+}
+
+function onInvProductChange(id, productId, data) {
+  const prod = (PRODUCTS[data.entity]||[]).find(p=>p.id===productId);
+  if (!prod) { updateLine(id,'productId',productId,data); return; }
+  const fmt0 = prod.formats[0];
+  data.lines = data.lines.map(l=>l.id===id?{...l,productId,format:fmt0,unitPrice:prod.prices[fmt0]||0}:l);
+  renderInvoiceForm(data);
+}
+
+function onInvFormatChange(id, productId, format, data) {
+  const prod = (PRODUCTS[data.entity]||[]).find(p=>p.id===productId);
+  data.lines = data.lines.map(l=>l.id===id?{...l,format,unitPrice:prod?.prices[format]||l.unitPrice}:l);
+  renderInvoiceForm(data);
+}
+
+function saveInvoice(data, status) {
+  const inv = {...data, status, needsApproval: status==='Pending Approval', submittedBy: currentUser.name};
+  const idx = invoices.findIndex(i=>i.id===inv.id);
+  if (idx>=0) invoices[idx]=inv; else invoices.unshift(inv);
+  if (status==='Sent') {
+    openEmailClient(buildInvEmail(inv));
+    showToast('Invoice saved & email client opened ✓', 'success');
+  } else if (status==='Pending Approval') {
+    openEmailClient(buildApprovalEmail('inv',inv));
+    showToast('Submitted for admin approval ✓', 'success');
+  } else {
+    showToast('Draft saved ✓', 'success');
+  }
+  renderInvoiceList();
+}
+
+function approveInvoice(id) {
+  const idx = invoices.findIndex(i=>i.id===id);
+  if (idx<0) return;
+  invoices[idx] = {...invoices[idx], status:'Sent', needsApproval:false};
+  openEmailClient(buildInvEmail(invoices[idx]));
+  showToast('Approved & email client opened ✓', 'success');
+  renderInvoiceList();
+}
+
+function remindInvoice(id) {
+  const inv = invoices.find(i=>i.id===id);
+  if (!inv) return;
+  openEmailClient(buildInvEmail(inv, true));
+  showToast('Reminder email client opened ✓', 'success');
+}
+
+function editInvoice(id) { const inv = invoices.find(i=>i.id===id); if(inv) renderInvoiceForm({...inv,lines:[...inv.lines.map(l=>({...l}))],billTo:{...inv.billTo},extraEmails:[...(inv.extraEmails||[])]}); }
+function viewInvoice(id) { const inv = invoices.find(i=>i.id===id); if(inv) renderInvoiceDetail(inv); }
+
+function renderInvoiceDetail(inv) {
+  showView('inv','detail');
+  const br = BRANDS[inv.entity]||BRANDS.PPP;
+  document.getElementById('inv-detail-view').innerHTML = `
+    <button class="back-btn" onclick="renderInvoiceList()">← Back to Invoices</button>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:22px">
+      <div style="width:32px;height:32px;border-radius:8px;background:${br.color}18;border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;font-size:10px;color:${br.color};font-weight:700">${br.abbr}</div>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:22px;color:${br.color};font-weight:400">${inv.id}</h2>
+      <span class="status-pill" style="color:var(--gold);border:1px solid rgba(233,162,40,0.3)">${inv.status}</span>
+      ${isAdmin()&&inv.needsApproval?`<button class="btn-gold" style="font-size:11px;padding:5px 14px" onclick="approveInvoice('${inv.id}');renderInvoiceDetail(invoices.find(i=>i.id==='${inv.id}'))">Approve & Send ✓</button>`:''}
+    </div>
+    <div class="card mb-16">
+      <div style="display:flex;justify-content:space-between;margin-bottom:18px">
+        <div>
+          <div class="xsmall text-muted mb-12" style="margin-bottom:4px">Bill To</div>
+          <div style="font-size:15px;color:var(--cream)">${inv.billTo?.name||'—'}</div>
+          <div class="small text-muted">${inv.billTo?.company||''}</div>
+          <div style="margin-top:10px"><div class="xsmall text-muted mb-12" style="margin-bottom:4px">Recipients</div>
+            ${[ADMIN_EMAIL,...(inv.extraEmails||[])].map(e=>`<div class="small text-muted">${e}</div>`).join('')}
+          </div>
+          ${inv.submittedBy?`<div class="xsmall text-muted" style="margin-top:8px">Submitted by: ${inv.submittedBy}</div>`:''}
+        </div>
+        <div style="text-align:right">
+          <div class="xsmall text-muted mb-12" style="margin-bottom:4px">Total Due</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--gold)">${fmt(calcInvTotal(inv))}</div>
+          <div class="small text-muted" style="margin-top:4px">Due ${inv.dueDate}</div>
+        </div>
+      </div>
+      ${inv.lines.map(l=>{const p=(PRODUCTS[inv.entity]||[]).find(x=>x.id===l.productId);
+        return `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #141416;padding:8px 0">
+          <span style="font-size:13px;color:var(--text-dim)">${p?.title||l.productId}${l.format?` — ${l.format}`:''} ×${l.qty}</span>
+          <span style="font-size:13px">${fmt(calcLineTotal(l))}</span></div>`;}).join('')}
+      <div style="text-align:right;margin-top:12px;font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold)">${fmt(calcInvTotal(inv))}</div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn-ghost" onclick="editInvoice('${inv.id}')">Edit</button>
+      ${['Sent','Partial','Overdue'].includes(inv.status)?`<button class="btn-ghost" onclick="remindInvoice('${inv.id}')">Send Reminder ✉</button>`:''}
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// PO LIST & FORM
+// ══════════════════════════════════════════════════════
+function renderPOList() {
+  showView('po','list');
+  const myPos = isAdmin() ? pos : pos.filter(p=>currentUser.brands.includes(p.entity));
+  const pending = isAdmin() ? myPos.filter(p=>p.needsApproval).length : 0;
+  const banner = document.getElementById('po-approval-banner');
+  if (pending>0) { banner.classList.remove('hidden'); document.getElementById('po-approval-text').textContent=`${pending} PO${pending>1?'s':''} pending your approval`; }
+  else banner.classList.add('hidden');
+
+  const ap = myPos.filter(p=>['Sent','Approved','Partial'].includes(p.status)).reduce((s,p)=>s+calcPOTotal(p),0);
+  document.getElementById('po-stats').innerHTML = [
+    ['Outstanding (AP)', fmt(ap), 'var(--red)'],
+    ['Received', myPos.filter(p=>p.status==='Received').length+' orders', 'var(--green)'],
+    ['Draft', myPos.filter(p=>p.status==='Draft').length+' orders', 'var(--text-muted)'],
+    isAdmin()?['Pending Approval', pending+' orders','var(--gold)']:['In Transit', myPos.filter(p=>p.status==='Shipped').length+' orders','var(--gold)'],
+  ].map(([l,v,c])=>`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-val" style="color:${c}">${v}</div></div>`).join('');
+
+  const tbody = document.getElementById('po-tbody');
+  if (!myPos.length) { tbody.innerHTML='<tr><td colspan="8" class="empty-state">No purchase orders yet.</td></tr>'; return; }
+  tbody.innerHTML = myPos.map(po=>{
+    const br=BRANDS[po.entity]||BRANDS.PPP;
+    const sc=po.status==='Received'?'var(--green)':po.status==='Draft'?'var(--text-muted)':'var(--gold)';
+    return `<tr onclick="viewPO('${po.id}')">
+      <td style="color:${br.color};font-size:12px">${po.id}</td>
+      <td><span style="font-size:10px;color:${br.color};font-weight:700">${po.entity}</span></td>
+      <td>${po.vendor||'—'}</td>
+      <td class="td-muted">${po.date}</td>
+      <td class="td-muted">${po.expectedDate}</td>
+      <td>${fmt(calcPOTotal(po))}</td>
+      <td><span class="status-pill" style="border:1px solid ${sc}44;color:${sc}">${po.status}</span>${po.submittedBy?`<div class="xsmall text-muted">by ${po.submittedBy}</div>`:''}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="flex-gap">
+          <button class="btn-ghost" onclick="editPO('${po.id}')">Edit</button>
+          ${isAdmin()&&po.needsApproval?`<button class="btn-gold" style="padding:4px 9px;font-size:10px" onclick="approvePO('${po.id}')">Approve ✓</button>`:''}
+          ${['Sent','Approved','Partial'].includes(po.status)?`<button class="btn-ghost" onclick="remindPO('${po.id}')">Remind</button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  updateBadges();
+}
+
+function renderPOForm(po) {
+  showView('po','form');
+  let data = {...po, lines:[...po.lines.map(l=>({...l}))], shipTo:{...po.shipTo}, extraEmails:[...(po.extraEmails||[])]};
+
+  function sub() { return data.lines.reduce((s,l)=>s+l.qty*l.unitCost,0); }
+  function tax() { return sub()*(data.taxEntry||0); }
+  function grand() { return sub()+tax()+(data.shippingCost||0); }
+
+  document.getElementById('po-form-view').innerHTML = `
+    <button class="back-btn" onclick="renderPOList()">← Back to POs</button>
+    <div class="flex-between mb-20">
+      <div><div class="xsmall text-muted mb-12" style="margin-bottom:2px">${data.id}</div>
+      <div class="page-title">${pos.find(p=>p.id===data.id)?'Edit PO':'New Purchase Order'}</div></div>
+      ${!isAdmin()?`<span class="status-pill" style="color:var(--gold);border:1px solid rgba(233,162,40,0.3)">Requires Admin Approval</span>`:''}
+    </div>
+    <div class="form-grid mb-16">
+      <div class="card">
+        <div class="xsmall text-muted mb-12" style="margin-bottom:10px;letter-spacing:0.12em;text-transform:uppercase">PO Details</div>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><div class="xsmall text-muted" style="margin-bottom:4px">Entity</div>
+            <select class="form-input" onchange="data.entity=this.value;renderPOFormStatic(data)">
+              ${currentUser.brands.map(b=>`<option value="${b}" ${data.entity===b?'selected':''}>${BRANDS[b].name}</option>`).join('')}
+            </select></div>
+          <div><div class="xsmall text-muted" style="margin-bottom:4px">Status</div>
+            <select class="form-input" onchange="data.status=this.value">
+              ${['Draft','Sent','Approved','Shipped','Partial','Received','Cancelled'].map(s=>`<option ${data.status===s?'selected':''}>${s}</option>`).join('')}
+            </select></div>
+          <div><div class="xsmall text-muted" style="margin-bottom:4px">PO Date</div>
+            <input type="date" class="form-input" value="${data.date}" onchange="data.date=this.value"/></div>
+          <div><div class="xsmall text-muted" style="margin-bottom:4px">Expected Delivery</div>
+            <input type="date" class="form-input" value="${data.expectedDate}" onchange="data.expectedDate=this.value"/></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="xsmall text-muted mb-12" style="margin-bottom:10px;letter-spacing:0.12em;text-transform:uppercase">Vendor & Ship To</div>
+        <div class="form-field"><div class="xsmall text-muted" style="margin-bottom:4px">Vendor</div>
+          <select class="form-input" onchange="data.vendor=this.value">
+            <option value="">Select vendor…</option>
+            ${VENDORS.map(v=>`<option ${data.vendor===v?'selected':''}>${v}</option>`).join('')}
+          </select></div>
+        <div class="form-field"><div class="xsmall text-muted" style="margin-bottom:4px">Ship To — Name</div>
+          <input class="form-input" value="${data.shipTo.name||''}" placeholder="Warehouse / Office" onchange="data.shipTo.name=this.value"/></div>
+        <div class="form-field"><div class="xsmall text-muted" style="margin-bottom:4px">Ship To — Address</div>
+          <input class="form-input" value="${data.shipTo.address||''}" placeholder="Street, City, State ZIP" onchange="data.shipTo.address=this.value"/></div>
+      </div>
+    </div>
+    ${renderEmailField(data)}
+    <div class="card mb-16">
+      <div class="flex-between mb-16">
+        <div class="xsmall text-muted" style="letter-spacing:0.12em;text-transform:uppercase">Items Ordered</div>
+        <button class="btn-ghost" onclick="data.lines.push(newPOLine());renderPOFormStatic(data)">+ Add Item</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr>
+          ${['Description','Qty','Unit','Unit Cost','Line Total',''].map(h=>`<th style="font-size:9px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">${h}</th>`).join('')}
+        </tr></thead>
+        <tbody id="po-lines-tbody">
+          ${data.lines.map(l=>`<tr style="border-bottom:1px solid #141416">
+            <td style="padding:6px 8px;min-width:200px"><input class="form-input" style="font-size:12px" value="${l.description}" placeholder="Item description…" onchange="updatePOLine('${l.id}','description',this.value,data)"/></td>
+            <td style="padding:6px 8px"><input type="number" min="1" class="form-input" style="width:50px;text-align:center" value="${l.qty}" onchange="updatePOLine('${l.id}','qty',+this.value,data)"/></td>
+            <td style="padding:6px 8px"><select class="form-input" style="font-size:11px" onchange="updatePOLine('${l.id}','unit',this.value,data)">
+              ${['ea','case','box','pallet','lb','oz'].map(u=>`<option ${l.unit===u?'selected':''}>${u}</option>`).join('')}
+            </select></td>
+            <td style="padding:6px 8px"><input type="number" step="0.01" class="form-input" style="width:80px" value="${l.unitCost}" onchange="updatePOLine('${l.id}','unitCost',+this.value,data)"/></td>
+            <td style="padding:6px 8px;font-size:13px;text-align:right">${fmt(l.qty*l.unitCost)}</td>
+            <td style="padding:6px 8px"><button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px" onclick="data.lines=data.lines.filter(x=>x.id!=='${l.id}');renderPOFormStatic(data)">×</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="form-grid mb-20" style="grid-template-columns:1fr 280px">
+      <div class="card"><div class="xsmall text-muted mb-12" style="margin-bottom:8px;letter-spacing:0.12em;text-transform:uppercase">Notes / Instructions</div>
+        <textarea class="form-input" rows="4" placeholder="Special instructions…" onchange="data.notes=this.value">${data.notes||''}</textarea></div>
+      <div class="card">
+        <div class="xsmall text-muted mb-12" style="margin-bottom:10px;letter-spacing:0.12em;text-transform:uppercase">Cost Summary</div>
+        <div class="xsmall text-muted" style="margin-bottom:6px">Tax Rate</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
+          ${TAX_PRESETS.map(t=>`<button class="chip ${data.taxLabel===t.label?'active':''}" onclick="data.taxLabel='${t.label}';data.taxEntry=${t.rate===null?data.taxEntry:t.rate};renderPOFormStatic(data)">${t.label}</button>`).join('')}
+        </div>
+        <div class="form-field"><div class="xsmall text-muted" style="margin-bottom:4px">Shipping / Freight</div>
+          <input type="number" step="0.01" class="form-input" value="${data.shippingCost||0}" onchange="data.shippingCost=+this.value"/></div>
+        <div style="border-top:1px solid var(--border);padding-top:10px">
+          <div class="summary-row"><span>Subtotal</span><span>${fmt(sub())}</span></div>
+          ${tax()>0?`<div class="summary-row"><span>Tax</span><span>${fmt(tax())}</span></div>`:''}
+          ${data.shippingCost?`<div class="summary-row"><span>Shipping</span><span>${fmt(data.shippingCost)}</span></div>`:''}
+          <div class="summary-total"><span>Total</span><span>${fmt(grand())}</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn-ghost" onclick="renderPOList()">Cancel</button>
+      <button class="btn-ghost" onclick="savePO(data,'Draft')">Save Draft</button>
+      <button class="btn-gold" onclick="savePO(data,'${isAdmin()?'Sent':'Pending Approval'}')">${isAdmin()?'Save & Send ✉':'Submit for Approval →'}</button>
+    </div>`;
+  // store data ref
+  window._poFormData = data;
+}
+
+function renderPOFormStatic(data) { renderPOForm(data); }
+
+function updatePOLine(id, key, val, data) {
+  data.lines = data.lines.map(l=>l.id===id?{...l,[key]:val}:l);
+}
+
+function savePO(data, status) {
+  const po = {...data, status, needsApproval: status==='Pending Approval', submittedBy: currentUser.name};
+  const idx = pos.findIndex(p=>p.id===po.id);
+  if (idx>=0) pos[idx]=po; else pos.unshift(po);
+  if (status==='Sent') { openEmailClient(buildPOEmail(po)); showToast('PO saved & email client opened ✓','success'); }
+  else if (status==='Pending Approval') { openEmailClient(buildApprovalEmail('po',po)); showToast('Submitted for admin approval ✓','success'); }
+  else showToast('Draft saved ✓','success');
+  renderPOList();
+}
+
+function approvePO(id) {
+  const idx = pos.findIndex(p=>p.id===id);
+  if (idx<0) return;
+  pos[idx] = {...pos[idx], status:'Sent', needsApproval:false};
+  openEmailClient(buildPOEmail(pos[idx]));
+  showToast('Approved & email client opened ✓','success');
+  renderPOList();
+}
+
+function remindPO(id) { const p=pos.find(x=>x.id===id); if(p){openEmailClient(buildPOEmail(p,true));showToast('Reminder email opened ✓','success');} }
+function editPO(id) { const p=pos.find(x=>x.id===id); if(p) renderPOForm({...p,lines:[...p.lines.map(l=>({...l}))],shipTo:{...p.shipTo},extraEmails:[...(p.extraEmails||[])]}); }
+function viewPO(id) { const p=pos.find(x=>x.id===id); if(p) renderPODetail(p); }
+
+function renderPODetail(po) {
+  showView('po','detail');
+  const br=BRANDS[po.entity]||BRANDS.PPP;
+  document.getElementById('po-detail-view').innerHTML = `
+    <button class="back-btn" onclick="renderPOList()">← Back to POs</button>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:22px">
+      <div style="width:32px;height:32px;border-radius:8px;background:${br.color}18;border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;font-size:10px;color:${br.color};font-weight:700">${br.abbr}</div>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:22px;color:${br.color};font-weight:400">${po.id}</h2>
+      ${isAdmin()&&po.needsApproval?`<button class="btn-gold" style="font-size:11px;padding:5px 14px" onclick="approvePO('${po.id}');renderPODetail(pos.find(p=>p.id==='${po.id}'))">Approve & Send ✓</button>`:''}
+    </div>
+    <div class="card mb-16">
+      <div style="display:flex;justify-content:space-between;margin-bottom:18px">
+        <div>
+          <div class="xsmall text-muted mb-12" style="margin-bottom:4px">Vendor</div>
+          <div style="font-size:15px;color:var(--cream)">${po.vendor||'—'}</div>
+          <div class="small text-muted" style="margin-top:4px">Expected: ${po.expectedDate}</div>
+          ${po.submittedBy?`<div class="xsmall text-muted" style="margin-top:8px">Submitted by: ${po.submittedBy}</div>`:''}
+        </div>
+        <div style="text-align:right">
+          <div class="xsmall text-muted mb-12" style="margin-bottom:4px">PO Total</div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--gold)">${fmt(calcPOTotal(po))}</div>
+        </div>
+      </div>
+      ${po.lines.map(l=>`<div style="display:flex;justify-content:space-between;border-bottom:1px solid #141416;padding:8px 0">
+        <span style="font-size:13px;color:var(--text-dim)">${l.description} ×${l.qty} ${l.unit}</span>
+        <span style="font-size:13px">${fmt(l.qty*l.unitCost)}</span></div>`).join('')}
+      <div style="text-align:right;margin-top:12px;font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold)">${fmt(calcPOTotal(po))}</div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn-ghost" onclick="editPO('${po.id}')">Edit</button>
+      ${['Sent','Approved','Partial'].includes(po.status)?`<button class="btn-ghost" onclick="remindPO('${po.id}')">Send Reminder ✉</button>`:''}
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// USERS
+// ══════════════════════════════════════════════════════
+function renderUsers() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = USERS.map(u => `<tr>
+    <td>${u.name}</td>
+    <td class="td-muted small">${u.email}</td>
+    <td><span class="status-pill" style="color:${u.role==='admin'?'var(--gold)':'var(--text-dim)'};border:1px solid ${u.role==='admin'?'rgba(233,162,40,0.3)':'var(--border)'}">${u.role==='admin'?'Admin':'Member'}</span></td>
+    <td><div style="display:flex;gap:6px">${u.brands.map(b=>`<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:${BRANDS[b].color}15;color:${BRANDS[b].color}">${b}</span>`).join('')}</div></td>
+    <td><span class="status-pill" style="color:var(--text-dim);border:1px solid var(--border)">${ACCOUNT_LEVELS[u.accountLevel||'all']}</span></td>
+    <td class="text-muted small">${'•'.repeat(u.pin.length)}</td>
+    <td><div class="flex-gap">
+      <button class="btn-ghost" onclick="editUser('${u.id}')">Edit</button>
+      ${u.id!=='u1'?`<button class="btn-danger" onclick="removeUser('${u.id}')">Remove</button>`:''}
+    </div></td>
+  </tr>`).join('');
+}
+
+function editUser(id) {
+  const u = USERS.find(x=>x.id===id);
+  if (!u) return;
+  renderUserForm({...u, brands:[...u.brands]});
+}
+
+function newUser() {
+  renderUserForm({ id:'u'+randId(), name:'', email:'', role:'member', brands:[], accountLevel:'all', pin:'' });
+}
+
+function removeUser(id) {
+  USERS = USERS.filter(u=>u.id!==id);
+  renderUsers();
+  showToast('User removed.','success');
+}
+
+function renderUserForm(u) {
+  const wrap = document.getElementById('user-form-wrap');
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = `
+    <div class="xsmall text-muted mb-12" style="margin-bottom:12px;letter-spacing:0.12em;text-transform:uppercase">${USERS.find(x=>x.id===u.id)?'Edit User':'New User'}</div>
+    <div class="form-grid" style="gap:12px;margin-bottom:14px">
+      <div><div class="xsmall text-muted" style="margin-bottom:4px">Name</div>
+        <input class="form-input" value="${u.name}" placeholder="Full name" onchange="u.name=this.value"/></div>
+      <div><div class="xsmall text-muted" style="margin-bottom:4px">Email</div>
+        <input class="form-input" value="${u.email}" placeholder="email@company.com" onchange="u.email=this.value"/></div>
+      <div><div class="xsmall text-muted" style="margin-bottom:4px">Role</div>
+        <select class="form-input" onchange="u.role=this.value;if(this.value==='admin')u.brands=['SOJ','PPP','ST'];renderUserForm(u)">
+          <option value="admin" ${u.role==='admin'?'selected':''}>Admin (all access)</option>
+          <option value="member" ${u.role==='member'?'selected':''}>Member (assigned brands)</option>
+        </select></div>
+      <div><div class="xsmall text-muted" style="margin-bottom:4px">PIN</div>
+        <input type="password" class="form-input" value="${u.pin}" placeholder="Set PIN" onchange="u.pin=this.value"/></div>
+    </div>
+    ${u.role==='member'?`
+    <div class="mb-16">
+      <div class="xsmall text-muted mb-12" style="margin-bottom:10px">Brand Access</div>
+      <div style="display:flex;gap:10px">
+        ${Object.keys(BRANDS).map(b=>`
+          <div class="brand-toggle ${u.brands.includes(b)?'active':''}" onclick="u.brands.includes('${b}')?u.brands.splice(u.brands.indexOf('${b}'),1):u.brands.push('${b}');renderUserForm(u)">
+            <span style="font-size:10px;font-weight:700;color:${BRANDS[b].color}">${b}</span>
+            <span style="font-size:11px;color:${u.brands.includes(b)?BRANDS[b].color:'var(--text-muted)'}">${BRANDS[b].name}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="mb-16">
+      <div class="xsmall text-muted mb-12" style="margin-bottom:10px">Account Visibility</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${Object.entries(ACCOUNT_LEVELS).map(([k,label])=>`
+          <div class="brand-toggle ${(u.accountLevel||'all')===k?'active':''}" onclick="u.accountLevel='${k}';renderUserForm(u)" style="cursor:pointer">
+            <span style="font-size:11px;color:${(u.accountLevel||'all')===k?'var(--gold)':'var(--text-muted)'}">${label}</span>
+          </div>`).join('')}
+      </div>
+      <div class="xsmall text-muted" style="margin-top:8px;line-height:1.5">
+        <strong style="color:var(--text-dim)">All Accounts</strong> — sees all balances for their brands<br>
+        <strong style="color:var(--text-dim)">Checking Only</strong> — sees only checking accounts<br>
+        <strong style="color:var(--text-dim)">Non-Credit</strong> — sees checking + savings, no credit card balances<br>
+        <strong style="color:var(--text-dim)">No Balance Data</strong> — sees accounts listed but no dollar amounts
+      </div>
+    </div>`:''}
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn-ghost" onclick="document.getElementById('user-form-wrap').classList.add('hidden')">Cancel</button>
+      <button class="btn-gold" onclick="saveUser(u)">Save User</button>
+    </div>`;
+  window._editingUser = u;
+}
+
+function saveUser(u) {
+  const idx = USERS.findIndex(x=>x.id===u.id);
+  if (idx>=0) USERS[idx]=u; else USERS.push(u);
+  document.getElementById('user-form-wrap').classList.add('hidden');
+  renderUsers();
+  showToast('User saved ✓','success');
+}
+
+// ══════════════════════════════════════════════════════
+// EMAIL
+// ══════════════════════════════════════════════════════
+function buildInvEmail(inv, remind=false) {
+  const total = fmt(calcInvTotal(inv));
+  const entity = BRANDS[inv.entity]?.name||inv.entity;
+  const to = [ADMIN_EMAIL,...(inv.extraEmails||[])].filter((e,i,a)=>a.indexOf(e)===i);
+  const subj = remind?`[REMINDER] Invoice ${inv.id} — ${total} due ${inv.dueDate}`:`Invoice ${inv.id} from ${entity} — ${total}`;
+  const body = remind
+    ? `Hi ${inv.billTo?.name||''},\n\nReminder: Invoice ${inv.id} for ${total} is due ${inv.dueDate}.\n\nThank you,\n${entity}`
+    : `Hi ${inv.billTo?.name||''},\n\nInvoice #: ${inv.id}\nAmount: ${total}\nDue: ${inv.dueDate}\n\nItems:\n${inv.lines.map(l=>`  ${l.productId||l.format} ×${l.qty} — ${fmt(calcLineTotal(l))}`).join('\n')}\n\nNotes: ${inv.notes||'—'}\n\nThank you,\n${entity}`;
+  return { to, subj, body };
+}
+
+function buildPOEmail(po, remind=false) {
+  const total = fmt(calcPOTotal(po));
+  const entity = BRANDS[po.entity]?.name||po.entity;
+  const to = [ADMIN_EMAIL,...(po.extraEmails||[])].filter((e,i,a)=>a.indexOf(e)===i);
+  const subj = remind?`[REMINDER] PO ${po.id} — ${po.vendor||'Vendor'}`:`Purchase Order ${po.id} — ${entity} — ${total}`;
+  const body = remind
+    ? `Follow-up on PO ${po.id} for ${total} with ${po.vendor}.\nExpected: ${po.expectedDate}.\n\nPlease confirm.\n\nThank you,\n${entity}`
+    : `PO #: ${po.id}\nVendor: ${po.vendor}\nTotal: ${total}\nExpected: ${po.expectedDate}\n\nItems:\n${po.lines.map(l=>`  ${l.description} ×${l.qty} ${l.unit} @ ${fmt(l.unitCost)}`).join('\n')}\n\nNotes: ${po.notes||'—'}\n\nThank you,\n${entity}`;
+  return { to, subj, body };
+}
+
+function buildApprovalEmail(type, doc) {
+  const total = type==='inv'?fmt(calcInvTotal(doc)):fmt(calcPOTotal(doc));
+  const entity = BRANDS[doc.entity]?.name||doc.entity;
+  return {
+    to:[ADMIN_EMAIL],
+    subj:`[APPROVAL NEEDED] ${type==='inv'?'Invoice':'Purchase Order'} ${doc.id} — ${total} — ${entity}`,
+    body:`A new ${type==='inv'?'invoice':'purchase order'} requires your approval.\n\nID: ${doc.id}\nEntity: ${entity}\nAmount: ${total}\nSubmitted by: ${doc.submittedBy||'Team member'}\n\nPlease log in to SOJ Holdings to review.`,
+  };
+}
+
+function openEmailClient({to, subj, body}) {
+  window.open(`mailto:${to.join(',')}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`,'_blank');
+}
+
+// ══════════════════════════════════════════════════════
+// VIEW HELPERS
+// ══════════════════════════════════════════════════════
+function showView(section, view) {
+  ['list','form','detail'].forEach(v => {
+    const el = document.getElementById(`${section}-${v}-view`);
+    if (el) el.classList.toggle('hidden', v!==view);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+initLogin();
+</script>
+</body>
+</html>
