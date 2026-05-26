@@ -1,6 +1,8 @@
 // api/get-transactions.js
-// Fetches transactions + balances for a given entity
-// Called by the dashboard to refresh data
+// Fetches balances + 60/90-day transactions for a given entity.
+// An entity may have MULTIPLE connected banks (e.g. SOJ = Chase + MACU);
+// this aggregates every active plaid_item for the entity and tags each
+// account with the bank (institution) it came from.
 
 const { PlaidApi, PlaidEnvironments, Configuration } = require('plaid');
 const { createClient } = require('@supabase/supabase-js');
@@ -32,114 +34,97 @@ module.exports = async (req, res) => {
   try {
     const { entity_name, days = 90 } = req.body;
 
-    // Get access token from Supabase (never from frontend)
-    const { data: item, error: dbError } = await supabase
+    // Get ALL active connections for this entity (could be more than one bank)
+    const { data: items, error: dbError } = await supabase
       .from('plaid_items')
       .select('access_token, institution_name, item_id')
       .eq('entity_name', entity_name)
-      .eq('is_active', true)
-      .single();
+      .eq('is_active', true);
 
-    if (dbError || !item) {
+    if (dbError) return res.status(500).json({ error: dbError.message });
+    if (!items || !items.length) {
       return res.status(404).json({ error: `No connected bank found for ${entity_name}` });
     }
 
-    const { access_token } = item;
-
-    // Date range
     const endDate = new Date().toISOString().split('T')[0];
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
       .toISOString().split('T')[0];
 
-    // Fetch transactions and balances in parallel
-    const [transactionsRes, balancesRes] = await Promise.all([
-      plaidClient.transactionsGet({
-        access_token,
-        start_date: startDate,
-        end_date: endDate,
-        options: { count: 500, offset: 0 },
-      }),
-      plaidClient.accountsBalanceGet({ access_token }),
-    ]);
+    const allAccounts = [];
+    const allTxns = [];
+    const institutions = [];
+    let needsRefresh = false;
 
-    const transactions = transactionsRes.data.transactions;
-    const accounts = balancesRes.data.accounts;
+    // Loop every bank connected under this entity and merge the results
+    for (const item of items) {
+      try {
+        const [txnRes, balRes] = await Promise.all([
+          plaidClient.transactionsGet({
+            access_token: item.access_token,
+            start_date: startDate,
+            end_date: endDate,
+            options: { count: 500, offset: 0 },
+          }),
+          plaidClient.accountsBalanceGet({ access_token: item.access_token }),
+        ]);
 
-    // Update last_synced timestamp
-    await supabase
-      .from('plaid_items')
+        institutions.push(item.institution_name);
+
+        balRes.data.accounts.forEach(a => {
+          allAccounts.push({
+            account_id: a.account_id,
+            name: a.name,
+            mask: a.mask,
+            type: a.type,
+            subtype: a.subtype,
+            balance: a.balances.current,
+            available: a.balances.available,
+            institution: item.institution_name,   // tag each account with its bank
+          });
+        });
+
+        txnRes.data.transactions.forEach(t => {
+          allTxns.push({
+            id: t.transaction_id,
+            date: t.date,
+            name: t.merchant_name || t.name,
+            amount: t.amount,
+            category: t.personal_finance_category?.primary || t.category?.[0] || 'Other',
+            account_id: t.account_id,
+            pending: t.pending,
+          });
+        });
+      } catch (itemErr) {
+        // One bank failing shouldn't break the others
+        if (itemErr.response?.data?.error_code === 'ITEM_LOGIN_REQUIRED') needsRefresh = true;
+        console.error(`get-transactions item error (${item.institution_name}):`,
+          itemErr.response?.data || itemErr.message);
+      }
+    }
+
+    // Touch last_synced for this entity's items
+    await supabase.from('plaid_items')
       .update({ last_synced: new Date().toISOString() })
       .eq('entity_name', entity_name);
 
-    // Calculate summary stats
-    const income = transactions
-      .filter(t => t.amount < 0) // Plaid: negative = money IN
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    if (!allAccounts.length && needsRefresh) {
+      return res.status(401).json({ error: 'Bank connection needs to be refreshed', error_code: 'ITEM_LOGIN_REQUIRED', entity_name });
+    }
 
-    const expenses = transactions
-      .filter(t => t.amount > 0) // Plaid: positive = money OUT
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalBalance = accounts.reduce((sum, a) => sum + (a.balances.current || 0), 0);
-
-    // Group transactions by category for P&L
-    const byCategory = {};
-    transactions.forEach(t => {
-      const cat = t.personal_finance_category?.primary || t.category?.[0] || 'Other';
-      if (!byCategory[cat]) byCategory[cat] = { income: 0, expenses: 0, count: 0 };
-      if (t.amount < 0) byCategory[cat].income += Math.abs(t.amount);
-      else byCategory[cat].expenses += t.amount;
-      byCategory[cat].count++;
-    });
+    const totalBalance = allAccounts.reduce((s, a) => s + (a.balance || 0), 0);
 
     res.status(200).json({
       entity_name,
-      institution: item.institution_name,
-      last_synced: new Date().toISOString(),
-      date_range: { start: startDate, end: endDate },
-      summary: {
-        total_balance: totalBalance,
-        income,
-        expenses,
-        net: income - expenses,
-      },
-      accounts: accounts.map(a => ({
-        account_id: a.account_id,
-        name: a.name,
-        mask: a.mask,
-        type: a.type,
-        subtype: a.subtype,
-        balance: a.balances.current,
-        available: a.balances.available,
-      })),
-      transactions: transactions.map(t => ({
-        id: t.transaction_id,
-        date: t.date,
-        name: t.merchant_name || t.name,
-        amount: t.amount,
-        category: t.personal_finance_category?.primary || t.category?.[0] || 'Other',
-        account_id: t.account_id,
-        pending: t.pending,
-        logo_url: t.logo_url,
-      })),
-      by_category: byCategory,
+      institution: [...new Set(institutions)].join(', '),
+      needs_refresh: needsRefresh,
+      bank_count: items.length,
+      accounts: allAccounts,
+      transactions: allTxns,
+      summary: { total_balance: totalBalance },
     });
 
   } catch (error) {
     console.error('Plaid get-transactions error:', error.response?.data || error.message);
-
-    // Handle expired/invalid token gracefully
-    if (error.response?.data?.error_code === 'ITEM_LOGIN_REQUIRED') {
-      return res.status(401).json({
-        error: 'Bank connection needs to be refreshed',
-        error_code: 'ITEM_LOGIN_REQUIRED',
-        entity_name,
-      });
-    }
-
-    res.status(500).json({
-      error: 'Failed to fetch transactions',
-      details: error.response?.data?.error_message || error.message,
-    });
+    res.status(500).json({ error: 'Failed to fetch transactions', details: error.response?.data?.error_message || error.message });
   }
 };
