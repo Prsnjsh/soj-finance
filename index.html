@@ -584,6 +584,52 @@ const sb = (window.supabase && window.supabase.createClient)
   : null;
 
 // ══════════════════════════════════════════════════════
+// DATA LAYER — saves to Supabase directly from the browser.
+// Database security rules (RLS) limit each person to their own brands.
+// If Supabase is unreachable it falls back to in-memory (demo) silently.
+// ══════════════════════════════════════════════════════
+const DB = {
+  async loadAll() {
+    if (!sb) return false;
+    try {
+      const [invRes, poRes, hRes] = await Promise.all([
+        sb.from('invoices').select('data'),
+        sb.from('purchase_orders').select('data'),
+        sb.from('hsrf').select('raised,disbursed,goal,donors').eq('id', 1).maybeSingle(),
+      ]);
+      if (!invRes.error && Array.isArray(invRes.data)) invoices = invRes.data.map(r => r.data).filter(Boolean);
+      if (!poRes.error && Array.isArray(poRes.data)) pos = poRes.data.map(r => r.data).filter(Boolean);
+      if (!hRes.error && hRes.data) hsrf = {
+        raised: +hRes.data.raised || 0, disbursed: +hRes.data.disbursed || 0,
+        goal: +hRes.data.goal || 0, donors: +hRes.data.donors || 0,
+      };
+      return true;
+    } catch (e) { console.warn('DB.loadAll failed', e); return false; }
+  },
+  async saveInvoice(inv) {
+    if (!sb) return;
+    try {
+      const { error } = await sb.from('invoices').upsert({ id: inv.id, entity: inv.entity, status: inv.status, data: inv });
+      if (error) throw error;
+    } catch (e) { console.warn('saveInvoice', e); showToast('Saved here, but server sync failed', 'error'); }
+  },
+  async savePO(po) {
+    if (!sb) return;
+    try {
+      const { error } = await sb.from('purchase_orders').upsert({ id: po.id, entity: po.entity, status: po.status, data: po });
+      if (error) throw error;
+    } catch (e) { console.warn('savePO', e); showToast('Saved here, but server sync failed', 'error'); }
+  },
+  async saveHsrf(h) {
+    if (!sb) return;
+    try {
+      const { error } = await sb.from('hsrf').upsert({ id: 1, raised: h.raised, disbursed: h.disbursed, goal: h.goal, donors: h.donors });
+      if (error) throw error;
+    } catch (e) { console.warn('saveHsrf', e); showToast('Server sync failed', 'error'); }
+  },
+};
+
+// ══════════════════════════════════════════════════════
 // DATA
 // ══════════════════════════════════════════════════════
 const API = '';
@@ -807,6 +853,7 @@ async function enterApp(authUser) {
   document.getElementById('app-screen').classList.remove('hidden');
   document.getElementById('header-user-name').textContent = currentUser.name;
   document.getElementById('users-nav-btn').style.display = isAdmin() ? '' : 'none';
+  await DB.loadAll();
   switchTab('dashboard');
 }
 
@@ -1009,6 +1056,7 @@ function saveHsrf() {
   hsrf.disbursed  = parseFloat(document.getElementById('hsrf-in-disbursed').value)||0;
   hsrf.goal       = parseFloat(document.getElementById('hsrf-in-goal').value)||0;
   hsrf.donors     = parseInt(document.getElementById('hsrf-in-donors').value)||0;
+  DB.saveHsrf(hsrf);
   toggleHsrfEdit(false);
   renderHsrf();
   showToast('HSRF figures updated ✓', 'success');
@@ -1366,6 +1414,7 @@ function saveInvoice(data, status) {
   const inv = {...data, status, needsApproval: status==='Pending Approval', submittedBy: currentUser.name};
   const idx = invoices.findIndex(i=>i.id===inv.id);
   if (idx>=0) invoices[idx]=inv; else invoices.unshift(inv);
+  DB.saveInvoice(inv);
   if (status==='Sent') {
     openEmailClient(buildInvEmail(inv));
     showToast('Invoice saved & email client opened ✓', 'success');
@@ -1382,6 +1431,7 @@ function approveInvoice(id) {
   const idx = invoices.findIndex(i=>i.id===id);
   if (idx<0) return;
   invoices[idx] = {...invoices[idx], status:'Sent', needsApproval:false};
+  DB.saveInvoice(invoices[idx]);
   openEmailClient(buildInvEmail(invoices[idx]));
   showToast('Approved & email client opened ✓', 'success');
   renderInvoiceList();
@@ -1589,6 +1639,7 @@ function savePO(data, status) {
   const po = {...data, status, needsApproval: status==='Pending Approval', submittedBy: currentUser.name};
   const idx = pos.findIndex(p=>p.id===po.id);
   if (idx>=0) pos[idx]=po; else pos.unshift(po);
+  DB.savePO(po);
   if (status==='Sent') { openEmailClient(buildPOEmail(po)); showToast('PO saved & email client opened ✓','success'); }
   else if (status==='Pending Approval') { openEmailClient(buildApprovalEmail('po',po)); showToast('Submitted for admin approval ✓','success'); }
   else showToast('Draft saved ✓','success');
@@ -1599,6 +1650,7 @@ function approvePO(id) {
   const idx = pos.findIndex(p=>p.id===id);
   if (idx<0) return;
   pos[idx] = {...pos[idx], status:'Sent', needsApproval:false};
+  DB.savePO(pos[idx]);
   openEmailClient(buildPOEmail(pos[idx]));
   showToast('Approved & email client opened ✓','success');
   renderPOList();
