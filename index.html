@@ -272,6 +272,36 @@
       table.line-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
       .hero-amount { font-size: 40px; }
     }
+
+    /* ── Plaid / live-data dashboard additions ── */
+    .btn-managebanks { background: rgba(201,150,58,0.12); border: 1px solid rgba(201,150,58,0.4); color: var(--gold); padding: 7px 13px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .btn-managebanks:hover { background: rgba(201,150,58,0.22); }
+    .status-dot.warn { background: #d8a23a; box-shadow: 0 0 6px #d8a23a; }
+
+    .accounts-grid { display: block; margin-bottom: 24px; }
+    .acct-group { margin-bottom: 26px; }
+    .acct-group:last-child { margin-bottom: 0; }
+    .acct-group-head { display: flex; align-items: center; gap: 9px; margin: 0 2px 11px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .acct-group-logo { width: 24px; height: 24px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+    .acct-group-logo img { width: 100%; height: 100%; }
+    .acct-group-name { font-size: 14px; font-weight: 700; letter-spacing: 0.02em; }
+    .acct-group-count { margin-left: auto; }
+    .acct-group-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+    .acct-txn-hint { font-weight: 600; }
+
+    .txns-view { position: fixed; inset: 0; background: #0d0d0f; z-index: 200; display: none; flex-direction: column; }
+    .txns-view.active { display: flex; }
+    .txns-head { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border); background: #16161a; }
+    .txns-back { background: none; border: none; color: var(--gold); font-size: 16px; cursor: pointer; padding: 4px 8px; flex-shrink: 0; }
+    .txns-titles { flex: 1; min-width: 0; }
+    .txns-title { font-size: 15px; font-weight: 700; color: var(--cream); }
+    .txns-balance { font-size: 17px; font-weight: 700; flex-shrink: 0; }
+    .txns-list { flex: 1; overflow-y: auto; padding: 8px 16px 40px; }
+    .txn-row { display: flex; align-items: center; gap: 12px; padding: 13px 4px; border-bottom: 1px solid var(--border); }
+    .txn-main { flex: 1; min-width: 0; }
+    .txn-name { font-size: 14px; color: var(--cream); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .txn-pending { font-size: 10px; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; margin-left: 4px; }
+    .txn-amt { font-size: 14px; font-weight: 700; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -328,6 +358,7 @@
       <div class="user-info">
         <span class="user-name" id="header-user-name"></span>
       </div>
+      <button class="btn-managebanks" onclick="openManageBanks()">🔗 Manage banks</button>
       <button class="btn-signout" onclick="signOut()">Sign Out</button>
     </div>
   </header>
@@ -382,8 +413,8 @@
     <!-- Entity Summary Cards -->
     <div class="entity-grid" id="entity-grid"></div>
 
-    <!-- Connect Banks section -->
-    <div class="connect-section" id="connect-section">
+    <!-- Connect Banks section (moved to header "Manage banks" button) -->
+    <div class="connect-section" id="connect-section" style="display:none">
       <div class="connect-header">
         <div>
           <div class="connect-title">Bank Connections</div>
@@ -413,7 +444,8 @@
         <button class="chip active" onclick="setFilter('type','All',this)">All</button>
         <button class="chip" onclick="setFilter('type','Checking',this)">Checking</button>
         <button class="chip" onclick="setFilter('type','Savings',this)">Savings</button>
-        <button class="chip" onclick="setFilter('type','Visa',this)">Visa</button>
+        <button class="chip" onclick="setFilter('type','Money Market',this)">Money Market</button>
+        <button class="chip" onclick="setFilter('type','Credit',this)">Credit</button>
       </div>
     </div>
     <div class="accounts-grid" id="accounts-grid"></div>
@@ -577,6 +609,31 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- Manage Banks Modal -->
+<div class="modal-overlay" id="manage-modal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Manage Banks</div>
+    <div class="modal-sub">Connect or reconnect each entity's bank. Live balances refresh when you sign in.</div>
+    <div class="entity-connect-grid" id="manage-grid" style="margin:14px 0"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeManageBanks()" style="flex:1">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transactions Panel (full screen) -->
+<div class="txns-view" id="txns-view">
+  <div class="txns-head">
+    <button class="txns-back" onclick="closeTxns()">‹ Back</button>
+    <div class="txns-titles">
+      <div class="txns-title" id="txns-title"></div>
+      <div class="txns-sub xsmall text-muted" id="txns-sub"></div>
+    </div>
+    <div class="txns-balance" id="txns-balance"></div>
+  </div>
+  <div class="txns-list" id="txns-list"></div>
+</div>
 
 <script>
 // ══════════════════════════════════════════════════════
@@ -762,6 +819,78 @@ function switchTab(tab, btnEl) {
 // ══════════════════════════════════════════════════════
 // ACCOUNT VISIBILITY FILTER
 // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// PLAID — live bank data, reshaped into the ACCOUNTS format
+// ══════════════════════════════════════════════════════
+let plaidTxns = {};      // brand -> [transactions]
+let plaidMeta = {};      // brand -> { institution, connected, error }
+let plaidLoaded = false;
+let plaidLoading = false;
+
+function shortBank(inst) {
+  if (!inst) return 'Bank';
+  const s = inst.toLowerCase();
+  if (s.includes('mountain america') || s.includes('macu')) return 'MACU';
+  if (s.includes('chase')) return 'Chase';
+  if (s.includes('capital one')) return 'Capital One';
+  return inst.length > 12 ? inst.slice(0, 12) + '…' : inst;
+}
+
+// Turn one Plaid account into the shape the dashboard already understands.
+function plaidToAccount(a, brand, institution) {
+  const sub = (a.subtype || '').toLowerCase();
+  const typ = (a.type || '').toLowerCase();
+  const isCredit = typ === 'credit' || sub.includes('credit');
+  let type = 'Account';
+  if (isCredit) type = 'Credit';
+  else if (sub.includes('money market')) type = 'Money Market';
+  else if (sub === 'savings') type = 'Savings';
+  else if (sub === 'checking') type = 'Checking';
+  else if (sub === 'cd') type = 'CD';
+  else if (typ === 'depository') type = 'Checking';
+  const cur = (a.balance != null) ? a.balance : 0;       // Plaid "current"
+  const avail = (a.available != null) ? a.available : 0;
+  return {
+    id: a.account_id,
+    brand, bank: shortBank(institution), type, credit: isCredit,
+    balance: isCredit ? -Math.abs(cur) : cur,            // amount owed shown negative
+    limit:   isCredit ? (Math.abs(cur) + avail) : 0,     // so (limit + balance) = available credit
+    last: 0,
+    acct: '••••' + (a.mask || '????'),
+  };
+}
+
+// Fetch live accounts + 60-day transactions for each of the user's brands.
+async function loadPlaid() {
+  if (!currentUser || !currentUser.brands || !sb) return;
+  plaidLoading = true;
+  const brands = currentUser.brands;
+  const results = await Promise.all(brands.map(async (b) => {
+    try {
+      const r = await fetch(`${API}/api/get-transactions`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity_name: BRANDS[b].name, days: 60 }),
+      });
+      const d = await r.json();
+      if (!r.ok) return { b, error: d.error_code || d.error || 'error' };
+      return { b, accounts: d.accounts || [], transactions: d.transactions || [], institution: d.institution };
+    } catch (e) { return { b, error: 'network' }; }
+  }));
+  const newAccts = [];
+  plaidTxns = {}; plaidMeta = {};
+  results.forEach(res => {
+    plaidMeta[res.b] = { institution: res.institution || null, error: res.error || null, connected: !res.error };
+    plaidTxns[res.b] = res.transactions || [];
+    (res.accounts || []).forEach(a => newAccts.push(plaidToAccount(a, res.b, res.institution)));
+  });
+  if (newAccts.length) {
+    ACCOUNTS.length = 0;
+    newAccts.forEach(a => ACCOUNTS.push(a));
+    plaidLoaded = true;
+  }
+  plaidLoading = false;
+}
+
 function visibleAccounts(user, allAccounts) {
   if (!user) return [];
   const brandAccounts = allAccounts.filter(a => user.brands.includes(a.brand));
@@ -860,7 +989,10 @@ async function enterApp(authUser) {
   document.getElementById('header-user-name').textContent = currentUser.name;
   document.getElementById('users-nav-btn').style.display = isAdmin() ? '' : 'none';
   await DB.loadAll();
+  ACCOUNTS.length = 0; plaidLoading = true;   // clear demo data; show real once loaded
   switchTab('dashboard');
+  renderDashboard();
+  loadPlaid().then(() => renderDashboard());
 }
 
 async function signOut() {
@@ -984,28 +1116,20 @@ function renderDashboard() {
   document.getElementById('dash-footer-info').textContent = `${brands.length} entities · ${allVisible.length} accounts`;
 }
 
-function renderAccounts() {
-  const userAccts = visibleAccounts(currentUser, ACCOUNTS);
-  let filtered = userAccts.filter(a => !a.hidden);
-  if (filters.bank !== 'All') filtered = filtered.filter(a => a.bank === filters.bank);
-  if (filters.entity !== 'All') filtered = filtered.filter(a => a.brand === filters.entity);
-  if (filters.type !== 'All') filtered = filtered.filter(a => a.type === filters.type);
+function acctTypeIcon(t) {
+  return t==='Checking'?'▭':t==='Savings'?'⏱':t==='Money Market'?'◈':t==='Credit'?'▣':t==='CD'?'▤':'▣';
+}
 
-  const grid = document.getElementById('accounts-grid');
-  if (!filtered.length) { grid.innerHTML = '<div class="empty-state">No accounts match filters.</div>'; return; }
-
-  grid.innerHTML = filtered.map(a => {
-    const br = BRANDS[a.brand];
-    const availCredit = a.credit ? (a.limit||0)+(a.balance||0) : null;
-    const typeIcon = a.type==='Checking'?'▭':a.type==='Savings'?'⏱':'▣';
-    return `<div class="acct-card">
+function acctCardHTML(a, br) {
+  const availCredit = a.credit ? (a.limit||0)+(a.balance||0) : null;
+  return `<div class="acct-card" onclick="openAccountTxns('${a.id}','${a.brand}')" style="cursor:pointer">
       <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${br.color}55,transparent)"></div>
       <div class="acct-top">
         <div class="acct-left">
           <div style="width:26px;height:26px;border-radius:6px;background:${br.logoBg};border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0"><img src="${br.logo}" alt="${br.abbr}" style="width:100%;height:100%;object-fit:${br.fit};padding:${br.fit==='contain'?'2px':'0'}"/></div>
           <div>
             <div class="acct-type-row">
-              <span class="acct-type-icon" style="color:${br.color}">${typeIcon}</span>
+              <span class="acct-type-icon" style="color:${br.color}">${acctTypeIcon(a.type)}</span>
               <span class="acct-type-text">${a.type}</span>
             </div>
             <div class="acct-mask">${a.acct}</div>
@@ -1016,12 +1140,97 @@ function renderAccounts() {
       <div class="acct-amount" style="color:${(a.balance||0)<0?'var(--red)':'var(--cream)'}">${fmt(a.balance)}</div>
       ${availCredit!==null?`<div class="acct-credit">Avail. credit: ${fmt(availCredit)}</div>`:''}
       <div class="acct-footer">
-        <span class="acct-entity xsmall text-muted">${br.name}</span>
-        ${a.last!==null&&a.last!==0?`<span class="acct-change" style="color:${(a.last||0)>0?'var(--green)':'var(--red)'}">${(a.last||0)>0?'+':''}${fmt(a.last)}</span>`:''}
+        <span class="acct-txn-hint xsmall" style="color:${br.color}">View 60-day activity ›</span>
       </div>
+    </div>`;
+}
+
+function renderAccounts() {
+  const grid = document.getElementById('accounts-grid');
+  if (plaidLoading && !ACCOUNTS.length) { grid.innerHTML = '<div class="empty-state">Loading live balances…</div>'; return; }
+
+  const userAccts = visibleAccounts(currentUser, ACCOUNTS);
+  let filtered = userAccts.filter(a => !a.hidden);
+  if (filters.bank !== 'All') filtered = filtered.filter(a => a.bank === filters.bank);
+  if (filters.entity !== 'All') filtered = filtered.filter(a => a.brand === filters.entity);
+  if (filters.type !== 'All') filtered = filtered.filter(a => a.type === filters.type);
+
+  if (!filtered.length) {
+    grid.innerHTML = plaidLoaded
+      ? '<div class="empty-state">No accounts match these filters.</div>'
+      : '<div class="empty-state">No live accounts yet — tap “Manage banks” up top to connect.</div>';
+    return;
+  }
+
+  // group by entity (in the user's brand order), with spacing between groups
+  const order = currentUser.brands.filter(b => filtered.some(a => a.brand === b));
+  grid.innerHTML = order.map(b => {
+    const br = BRANDS[b];
+    const ba = filtered.filter(a => a.brand === b);
+    return `<div class="acct-group">
+      <div class="acct-group-head">
+        <span class="acct-group-logo" style="background:${br.logoBg};border:1px solid ${br.color}33"><img src="${br.logo}" alt="${br.abbr}" style="object-fit:${br.fit};padding:${br.fit==='contain'?'2px':'0'}"/></span>
+        <span class="acct-group-name" style="color:${br.color}">${br.name}</span>
+        <span class="acct-group-count xsmall text-muted">${ba.length} account${ba.length!==1?'s':''}</span>
+      </div>
+      <div class="acct-group-cards">${ba.map(a => acctCardHTML(a, br)).join('')}</div>
     </div>`;
   }).join('');
 }
+
+// ── 60-day transactions view (full screen, mobile-friendly) ──
+function openAccountTxns(id, brand) {
+  const a = ACCOUNTS.find(x => x.id === id && x.brand === brand);
+  if (!a) return;
+  const br = BRANDS[brand];
+  const txns = (plaidTxns[brand] || [])
+    .filter(t => t.account_id === id)
+    .sort((x, y) => (y.date || '').localeCompare(x.date || ''));
+
+  const rows = txns.length ? txns.map(t => {
+    const disp = -(t.amount || 0);           // Plaid: + = money out; flip so inflow is positive
+    const col = disp >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<div class="txn-row">
+      <div class="txn-main">
+        <div class="txn-name">${(t.name||'Transaction')}${t.pending?' <span class=\"txn-pending\">pending</span>':''}</div>
+        <div class="txn-meta xsmall text-muted">${t.date||''} · ${t.category||''}</div>
+      </div>
+      <div class="txn-amt" style="color:${col}">${disp>=0?'+':''}${fmt(disp)}</div>
+    </div>`;
+  }).join('') : '<div class="empty-state">No transactions in the last 60 days.</div>';
+
+  document.getElementById('txns-title').textContent = `${a.type} ${a.acct}`;
+  document.getElementById('txns-sub').textContent = `${br.name} · ${a.bank}`;
+  const balEl = document.getElementById('txns-balance');
+  balEl.textContent = fmt(a.balance);
+  balEl.style.color = (a.balance||0) < 0 ? 'var(--red)' : 'var(--cream)';
+  document.getElementById('txns-list').innerHTML = rows;
+  document.getElementById('txns-view').classList.add('active');
+}
+function closeTxns() { document.getElementById('txns-view').classList.remove('active'); }
+
+// ── Manage banks (connect / status), opened from the header ──
+function openManageBanks() {
+  const grid = document.getElementById('manage-grid');
+  grid.innerHTML = currentUser.brands.map(b => {
+    const br = BRANDS[b];
+    const meta = plaidMeta[b] || {};
+    let status = 'Not connected', dot = 'disconnected';
+    if (meta.connected) { status = meta.institution ? `Connected · ${meta.institution}` : 'Connected'; dot = 'connected'; }
+    else if (meta.error === 'ITEM_LOGIN_REQUIRED') { status = 'Needs reconnect'; dot = 'warn'; }
+    return `<div class="entity-connect-card">
+      <div class="entity-connect-top">
+        <div style="width:28px;height:28px;border-radius:6px;background:${br.logoBg};border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0"><img src="${br.logo}" alt="${br.abbr}" style="width:100%;height:100%;object-fit:${br.fit};padding:${br.fit==='contain'?'2px':'0'}"/></div>
+        <div style="flex:1"><div style="font-size:12px;color:${br.color};margin-bottom:1px">${br.name}</div>
+        <div class="xsmall text-muted">${status}</div></div>
+        <div class="status-dot ${dot}"></div>
+      </div>
+      <button class="btn-connect" onclick="openConnectModal('${b}')">🔒 ${meta.connected?'Reconnect / add':'Connect Bank Account'}</button>
+    </div>`;
+  }).join('');
+  document.getElementById('manage-modal').classList.add('active');
+}
+function closeManageBanks() { document.getElementById('manage-modal').classList.remove('active'); }
 
 function setFilter(key, val, el) {
   filters[key] = val;
