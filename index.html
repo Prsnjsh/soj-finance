@@ -265,7 +265,7 @@
       .container { padding: 16px 14px; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
       .form-grid { grid-template-columns: 1fr !important; }
-      .header { flex-wrap: wrap; row-gap: 8px; }
+      .header { flex-wrap: wrap; row-gap: 8px; height: auto; min-height: 56px; padding-top: 8px; padding-bottom: 8px; }
       #main-nav { display: flex !important; flex-wrap: wrap; order: 3; width: 100%; gap: 6px; }
       .nav-btn { font-size: 12px; padding: 6px 11px; white-space: nowrap; }
       .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -288,6 +288,7 @@
     .acct-group-count { margin-left: auto; }
     .acct-group-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
     .acct-txn-hint { font-weight: 600; }
+    .manage-banks-row { display: flex; justify-content: flex-end; margin: 0 0 14px; }
 
     .txns-view { position: fixed; inset: 0; background: #0d0d0f; z-index: 200; display: none; flex-direction: column; }
     .txns-view.active { display: flex; }
@@ -358,7 +359,6 @@
       <div class="user-info">
         <span class="user-name" id="header-user-name"></span>
       </div>
-      <button class="btn-managebanks" onclick="openManageBanks()">🔗 Manage banks</button>
       <button class="btn-signout" onclick="signOut()">Sign Out</button>
     </div>
   </header>
@@ -447,6 +447,9 @@
         <button class="chip" onclick="setFilter('type','Money Market',this)">Money Market</button>
         <button class="chip" onclick="setFilter('type','Credit',this)">Credit</button>
       </div>
+    </div>
+    <div class="manage-banks-row">
+      <button class="btn-managebanks" onclick="openManageBanks()">🔗 Manage banks</button>
     </div>
     <div class="accounts-grid" id="accounts-grid"></div>
 
