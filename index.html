@@ -262,10 +262,15 @@
     .hidden { display: none; }
 
     @media(max-width:640px) {
-      .container { padding: 16px; }
+      .container { padding: 16px 14px; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
-      .form-grid { grid-template-columns: 1fr; }
-      nav { display: none; }
+      .form-grid { grid-template-columns: 1fr !important; }
+      .header { flex-wrap: wrap; row-gap: 8px; }
+      #main-nav { display: flex !important; flex-wrap: wrap; order: 3; width: 100%; gap: 6px; }
+      .nav-btn { font-size: 12px; padding: 6px 11px; white-space: nowrap; }
+      .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table.line-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+      .hero-amount { font-size: 40px; }
     }
   </style>
 </head>
@@ -711,6 +716,7 @@ const TAX_PRESETS = [
 // STATE
 // ══════════════════════════════════════════════════════
 let currentUser = null;
+let data = null; // shared working copy for the open invoice/PO form (reachable by inline buttons)
 let invoices = [];
 let pos = [];
 let savedEmails = [];
@@ -1225,7 +1231,7 @@ function renderInvoiceList() {
 // ══════════════════════════════════════════════════════
 function renderInvoiceForm(inv) {
   showView('inv','form');
-  let data = {...inv, lines:[...inv.lines.map(l=>({...l}))], billTo:{...inv.billTo}, extraEmails:[...(inv.extraEmails||[])]};
+  data = {...inv, lines:[...inv.lines.map(l=>({...l}))], billTo:{...inv.billTo}, extraEmails:[...(inv.extraEmails||[])]};
 
   function getProds() { return PRODUCTS[data.entity]||[]; }
   function subTotal() { return data.lines.reduce((s,l)=>s+calcLineTotal(l),0); }
@@ -1275,7 +1281,7 @@ function renderInvoiceForm(inv) {
           <div class="xsmall text-muted" style="letter-spacing:0.12em;text-transform:uppercase">Line Items</div>
           <button class="btn-ghost" onclick="data.lines.push(newInvLine());render()">+ Add Line</button>
         </div>
-        <table style="width:100%;border-collapse:collapse">
+        <table class="line-table" style="width:100%;border-collapse:collapse">
           <thead><tr>
             ${['Product','Format','Qty','Unit Price','Discount','Line Total',''].map(h=>`<th style="font-size:9px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">${h}</th>`).join('')}
           </tr></thead>
@@ -1533,7 +1539,7 @@ function renderPOList() {
 
 function renderPOForm(po) {
   showView('po','form');
-  let data = {...po, lines:[...po.lines.map(l=>({...l}))], shipTo:{...po.shipTo}, extraEmails:[...(po.extraEmails||[])]};
+  data = {...po, lines:[...po.lines.map(l=>({...l}))], shipTo:{...po.shipTo}, extraEmails:[...(po.extraEmails||[])]};
 
   function sub() { return data.lines.reduce((s,l)=>s+l.qty*l.unitCost,0); }
   function tax() { return sub()*(data.taxEntry||0); }
@@ -1583,7 +1589,7 @@ function renderPOForm(po) {
         <div class="xsmall text-muted" style="letter-spacing:0.12em;text-transform:uppercase">Items Ordered</div>
         <button class="btn-ghost" onclick="data.lines.push(newPOLine());renderPOFormStatic(data)">+ Add Item</button>
       </div>
-      <table style="width:100%;border-collapse:collapse">
+      <table class="line-table" style="width:100%;border-collapse:collapse">
         <thead><tr>
           ${['Description','Qty','Unit','Unit Cost','Line Total',''].map(h=>`<th style="font-size:9px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">${h}</th>`).join('')}
         </tr></thead>
