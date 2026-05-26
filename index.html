@@ -855,7 +855,7 @@ function plaidToAccount(a, brand, institution) {
   const avail = (a.available != null) ? a.available : 0;
   return {
     id: a.account_id,
-    brand, bank: shortBank(institution), type, credit: isCredit,
+    brand, bank: shortBank(a.institution || institution), type, credit: isCredit,
     balance: isCredit ? -Math.abs(cur) : cur,            // amount owed shown negative
     limit:   isCredit ? (Math.abs(cur) + avail) : 0,     // so (limit + balance) = available credit
     last: 0,
@@ -1296,12 +1296,14 @@ function closeModal() {
 
 async function launchPlaidLink() {
   const btn = document.getElementById('modal-connect-btn');
+  const entityKey = currentEntity;                  // capture BEFORE closeModal clears it
+  const entityName = BRANDS[entityKey]?.name;
   btn.textContent = '⏳ Opening secure connection…';
   btn.disabled = true;
   try {
     const res = await fetch(`${API}/api/create-link-token`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ entity_name: BRANDS[currentEntity]?.name, user_id: currentEntity?.toLowerCase() }),
+      body: JSON.stringify({ entity_name: entityName, user_id: entityKey?.toLowerCase() }),
     });
     const { link_token, error } = await res.json();
     if (error || !link_token) throw new Error(error || 'Could not get link token');
@@ -1309,16 +1311,17 @@ async function launchPlaidLink() {
     const handler = Plaid.create({
       token: link_token,
       onSuccess: async (public_token, metadata) => {
-        closeModal();
         showToast('Bank connected! Saving…', 'success');
         const exRes = await fetch(`${API}/api/exchange-token`, {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ public_token, entity_name: BRANDS[currentEntity]?.name, institution_name: metadata.institution?.name||'Bank' }),
+          body: JSON.stringify({ public_token, entity_name: entityName, institution_name: metadata.institution?.name||'Bank' }),
         });
         const exData = await exRes.json();
-        if (exData.success) showToast(`✅ ${metadata.institution?.name||'Bank'} connected!`, 'success');
+        if (exData.success) showToast(`✅ ${metadata.institution?.name||'Bank'} connected to ${entityName}!`, 'success');
         else showToast('Connection saved but could not verify.', 'error');
-        renderDashboard();
+        closeManageBanks();
+        plaidLoading = true; renderDashboard();
+        loadPlaid().then(() => renderDashboard());
       },
       onExit: (err) => {
         btn.textContent = '🔒 Connect Securely via Plaid';
