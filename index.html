@@ -881,10 +881,12 @@ async function loadPlaid() {
   if (!currentUser || !currentUser.brands || !sb) return;
   plaidLoading = true;
   const brands = currentUser.brands;
+  const { data: _sess } = await sb.auth.getSession();
+  const _token = (_sess && _sess.session && _sess.session.access_token) || '';
   const results = await Promise.all(brands.map(async (b) => {
     try {
       const r = await fetch(`${API}/api/get-transactions`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
         body: JSON.stringify({ entity_name: BRANDS[b].name, days: 60 }),
       });
       const d = await r.json();
