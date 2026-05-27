@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SOJ Holdings — Treasury Portal</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SOJ Finance" />
+  <meta name="theme-color" content="#0d0c08" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
   <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -323,16 +331,17 @@
         <div class="login-sub">Treasury Portal</div>
       </div>
       <div class="login-card">
+        <form id="login-form" onsubmit="doLogin();return false;">
         <div class="field-label mb-12">Email</div>
-        <input type="email" id="login-email" class="field-input mb-16" autocomplete="username"
+        <input type="email" id="login-email" name="email" class="field-input mb-16" autocomplete="username"
           placeholder="you@company.com"
-          onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()" />
+          onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('login-password').focus();}" />
         <div class="field-label mb-12">Password</div>
-        <input type="password" id="login-password" class="field-input mb-16" autocomplete="current-password"
-          placeholder="Enter password"
-          onkeydown="if(event.key==='Enter')doLogin()" />
+        <input type="password" id="login-password" name="password" class="field-input mb-16" autocomplete="current-password"
+          placeholder="Enter password" />
         <div id="login-err" class="login-err hidden"></div>
-        <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign In →</button>
+        <button type="submit" class="btn-primary" id="login-btn">Sign In →</button>
+        </form>
         <div class="login-hint"><a href="#" onclick="forgotPassword();return false;" style="color:var(--gold);text-decoration:none">Forgot password?</a></div>
       </div>
     </div>
@@ -957,6 +966,7 @@ async function doLogin() {
   try {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) { showLoginMsg(error.message || 'Incorrect email or password.'); return; }
+    try { localStorage.setItem('soj_email', email); } catch (e) {}
     await enterApp(data.user);
   } catch (e) {
     showLoginMsg('Could not sign in. Please try again.');
@@ -1007,7 +1017,7 @@ async function signOut() {
   currentUser = null;
   document.getElementById('app-screen').classList.add('hidden');
   document.getElementById('login-screen').style.display = '';
-  const em = document.getElementById('login-email'); if (em) em.value = '';
+  const em = document.getElementById('login-email'); if (em) { try { em.value = localStorage.getItem('soj_email') || ''; } catch (e) { em.value = ''; } }
   const pw = document.getElementById('login-password'); if (pw) pw.value = '';
   document.getElementById('login-err').classList.add('hidden');
 }
@@ -1026,6 +1036,12 @@ async function forgotPassword() {
 
 // Restores an existing session on page load, and handles password-reset links.
 async function boot() {
+  // Pre-fill the remembered email so sign-in is one tap + Face ID autofill
+  try {
+    const saved = localStorage.getItem('soj_email');
+    const em = document.getElementById('login-email');
+    if (saved && em && !em.value) em.value = saved;
+  } catch (e) {}
   if (!sb) return; // no backend reachable; login screen stays visible
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
