@@ -27,11 +27,39 @@ const ENTITIES = [
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
+    // ── AUTH: verify the caller and load their access profile ──
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) return res.status(401).json({ error: 'Not signed in' });
+
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return res.status(401).json({ error: 'Session expired — please sign in again' });
+    }
+    const email = (userData.user.email || '').toLowerCase();
+
+    const { data: profile, error: profErr } = await supabase
+      .from('profiles')
+      .select('role, brands')
+      .eq('email', email)
+      .single();
+
+    if (profErr || !profile) {
+      return res.status(403).json({ error: 'No access profile for this account' });
+    }
+
+    const allowedBrands = profile.role === 'admin'
+      ? ['SOJ', 'PPP', 'ST']
+      : (profile.brands || []);
+
+    // ── Only return entities this caller is allowed to see ──
+    const visibleEntities = ENTITIES.filter(e => allowedBrands.includes(e.short));
+
     const { data: items, error: dbError } = await supabase
       .from('plaid_items')
       .select('entity_name, institution_name, last_synced, is_active, account_count, item_id')
@@ -39,7 +67,7 @@ module.exports = async (req, res) => {
 
     if (dbError) throw new Error(dbError.message);
 
-    const result = ENTITIES.map(e => {
+    const result = visibleEntities.map(e => {
       const entItems = (items || []).filter(it => it.entity_name === e.name || it.entity_name === e.short);
       return {
         ...e,
