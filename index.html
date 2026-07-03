@@ -1148,7 +1148,10 @@ function acctTypeIcon(t) {
 
 function acctCardHTML(a, br) {
   const availCredit = a.credit ? (a.limit||0)+(a.balance||0) : null;
-  return `<div class="acct-card" onclick="openAccountTxns('${a.id}','${a.brand}')" style="cursor:pointer">
+  const TILE_ACCENT = { SOJ: '#E9A228', PPP: '#4A90C8', ST: '#3FB6A8' };
+  const accent = TILE_ACCENT[a.brand] || br.color;
+  return `<div class="acct-card" onclick="openAccountTxns('${a.id}','${a.brand}')" style="--tile-accent:${accent};cursor:pointer">
+
       <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${br.color}55,transparent)"></div>
       <div class="acct-top">
         <div class="acct-left">
