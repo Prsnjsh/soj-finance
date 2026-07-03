@@ -18,17 +18,61 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+// Map any stored entity label (full legal name OR short code) to a brand code.
+function entityToBrand(name) {
+  if (!name) return null;
+  const s = name.toLowerCase();
+  if (s.includes('stick of joseph') || s === 'soj') return 'SOJ';
+  if (s.includes('plain') || s === 'ppp') return 'PPP';
+  if (s.includes('saint threads') || s === 'st') return 'ST';
+  return null;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
+    // ── AUTH: verify the caller and load their access profile ──
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) return res.status(401).json({ error: 'Not signed in' });
+
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return res.status(401).json({ error: 'Session expired — please sign in again' });
+    }
+    const email = (userData.user.email || '').toLowerCase();
+
+    const { data: profile, error: profErr } = await supabase
+      .from('profiles')
+      .select('role, brands')
+      .eq('email', email)
+      .single();
+
+    if (profErr || !profile) {
+      return res.status(403).json({ error: 'No access profile for this account' });
+    }
+
     const { entity_name, days = 90 } = req.body;
 
+    // ── AUTHORIZE: does this user's role/brands cover the requested entity? ──
+    const requestedBrand = entityToBrand(entity_name);
+    if (!requestedBrand) {
+      return res.status(400).json({ error: 'Unknown entity requested' });
+    }
+    const allowedBrands = profile.role === 'admin'
+      ? ['SOJ', 'PPP', 'ST']
+      : (profile.brands || []);
+    if (!allowedBrands.includes(requestedBrand)) {
+      return res.status(403).json({ error: 'You do not have access to this entity' });
+    }
+
+    // ── From here down: original logic, unchanged ──
     const { data: items, error: dbError } = await supabase
       .from('plaid_items')
       .select('access_token, institution_name, item_id')
