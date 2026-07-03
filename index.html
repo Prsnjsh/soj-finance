@@ -1151,15 +1151,13 @@ function acctTypeIcon(t) {
 
 function acctCardHTML(a, br) {
   const availCredit = a.credit ? (a.limit||0)+(a.balance||0) : null;
-  return `<div class="acct-card" onclick="openAccountTxns('${a.id}','${a.brand}')" style="cursor:pointer">
-      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${br.color}55,transparent)"></div>
+  return `<div class="acct-card" onclick="openAccountTxns('${a.id}','${a.brand}')" style="--tile-accent:${br.color}">
       <div class="acct-top">
         <div class="acct-left">
-          <div style="width:26px;height:26px;border-radius:6px;background:${br.logoBg};border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0"><img src="${br.logo}" alt="${br.abbr}" style="width:100%;height:100%;object-fit:${br.fit};padding:${br.fit==='contain'?'2px':'0'}"/></div>
+          <div style="width:28px;height:28px;border-radius:7px;background:${br.logoBg};border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0"><img src="${br.logo}" alt="${br.abbr}" style="width:100%;height:100%;object-fit:${br.fit};padding:${br.fit==='contain'?'2px':'0'}"/></div>
           <div>
             <div class="acct-type-row">
-              <span class="acct-type-icon" style="color:${br.color}">${acctTypeIcon(a.type)}</span>
-              <span class="acct-type-text">${a.type}</span>
+              <span class="acct-type-text" style="color:${br.color}">${a.type}</span>
             </div>
             <div class="acct-mask">${a.acct}</div>
           </div>
@@ -1169,7 +1167,7 @@ function acctCardHTML(a, br) {
       <div class="acct-amount" style="color:${(a.balance||0)<0?'var(--red)':'var(--cream)'}">${fmt(a.balance)}</div>
       ${availCredit!==null?`<div class="acct-credit">Avail. credit: ${fmt(availCredit)}</div>`:''}
       <div class="acct-footer">
-        <span class="acct-txn-hint xsmall" style="color:${br.color}">View 60-day activity ›</span>
+        <span class="acct-view-link">View activity ›</span>
       </div>
     </div>`;
 }
