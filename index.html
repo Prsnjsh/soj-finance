@@ -1119,11 +1119,13 @@ function renderDashboard() {
         <div style="width:34px;height:34px;border-radius:8px;background:${br.logoBg};border:1px solid ${br.color}33;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0"><img src="${br.logo}" alt="${br.abbr}" style="width:100%;height:100%;object-fit:${br.fit};padding:${br.fit==='contain'?'3px':'0'}"/></div>
         <span class="entity-name">${br.name}</span>
       </div>
+            <div class="xsmall text-muted" style="letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px">Net Cash (after C/C)</div>
       <div class="entity-net">${currentUser.accountLevel==='none'?'—':fmt(bNet)}</div>
-      <div class="entity-breakdown">
-        <span class="entity-stat text-green">↑ ${fmt(bAssets)}</span>
-        <span class="entity-stat text-red">↓ ${fmt(Math.abs(bDebt))}</span>
+      <div class="entity-breakdown" style="gap:20px">
+        <span class="entity-stat"><span class="xsmall text-muted" style="display:block;letter-spacing:0.08em;text-transform:uppercase">Cash</span><span class="text-green">${fmt(bAssets)}</span></span>
+        <span class="entity-stat"><span class="xsmall text-muted" style="display:block;letter-spacing:0.08em;text-transform:uppercase">Owed</span><span class="text-red">${fmt(Math.abs(bDebt))}</span></span>
       </div>
+
       <div class="entity-banks xsmall text-muted">MACU ${fmt(bMACU)}${bChase?' · Chase '+fmt(bChase):''}</div>
     </div>`;
   }).join('');
