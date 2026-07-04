@@ -124,7 +124,8 @@
 
     /* ── ACCOUNT CARDS ── */
     .accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-bottom: 24px; }
-    .acct-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; position: relative; overflow: hidden; transition: border-color 0.2s; }
+    .acct-card { background: color-mix(in srgb, var(--tile-accent, var(--gold)) 8%, var(--card)); border: 1px solid var(--border);
+ border-radius: 12px; padding: 14px 16px; position: relative; overflow: hidden; transition: border-color 0.2s; }
     .acct-card:hover { border-color: var(--border2); }
     .acct-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--tile-accent, var(--gold)); }
 
