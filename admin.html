@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>SOJ Tours — Admin</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SOJ Admin" />
+  <link rel="apple-touch-icon" href="https://soj-tours.vercel.app/icon.png" />
+  <link rel="icon" href="https://soj-tours.vercel.app/icon.png" />
+  <meta name="theme-color" content="#0a0a0b" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;700&display=swap');
+    :root{
+      --bg:#0a0a0b; --surface:#101013; --card:#16161a; --card2:#1b1b20; --border:#26262c; --border2:#33333a;
+      --gold:#E9A228; --gold-2:#F0B843; --gold-dim:#9A7320; --gold-bg:#1c1505;
+      --teal:#2BC4C9; --cream:#F4EEDF; --text:#EDE8DC; --text-dim:#C9C3B5; --text-soft:#A7A296;
+      --green:#34C77B; --red:#E08478;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+    .wrap{max-width:900px;margin:0 auto;padding:0 14px 60px;}
+    .serif{font-family:'Cormorant Garamond',serif;}
+    .hidden{display:none !important;}
+
+    .gate{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;background:radial-gradient(ellipse at 50% 0%, #1c1505 0%, var(--bg) 55%);}
+    .gate img{width:100%;max-width:340px;margin-bottom:10px;}
+    .gate .tag{font-size:13px;color:var(--cream);letter-spacing:.22em;text-transform:uppercase;margin-bottom:24px;}
+    .gate-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:380px;}
+    .label{font-size:12px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:block;font-weight:700;}
+    .input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:9px;color:var(--cream);padding:13px 14px;font-size:16px;font-family:'DM Sans',sans-serif;outline:none;}
+    .input:focus{border-color:var(--gold-dim);}
+    .btn{width:100%;background:var(--gold);border:none;border-radius:11px;padding:15px;color:#1a1200;font-weight:700;font-size:16px;font-family:'DM Sans',sans-serif;cursor:pointer;}
+    .btn:disabled{opacity:.5;}
+    .err{color:var(--red);font-size:14px;margin:10px 0;}
+
+    .head{display:flex;flex-direction:column;align-items:stretch;gap:14px;background:linear-gradient(160deg,#1d1404,#100b02 70%);border:1px solid #3a2c10;border-radius:16px;padding:16px;margin:14px 0;box-shadow:0 6px 22px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05);}
+    .head-title{flex:1;min-width:0;}
+    .head-title .h{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold-2);line-height:1.05;}
+    .head-title .s{font-size:11px;color:var(--text-soft);letter-spacing:.18em;text-transform:uppercase;margin-top:4px;}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;width:100%;}
+    .act{flex:1 1 0;background:linear-gradient(180deg,#1f1f25,#16161a);border:1px solid var(--border2);border-radius:12px;padding:11px 8px;text-align:center;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;line-height:1.25;min-width:68px;box-shadow:0 3px 10px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);}
+    .act .ic{font-size:18px;display:block;margin-bottom:3px;}
+    .act.gold{background:var(--gold);border-color:var(--gold);color:#1a1200;}
+
+    .topgrid{display:flex;gap:0;align-items:stretch;background:#0e0e12;border:1px solid var(--border2);border-radius:18px;overflow:hidden;box-shadow:0 8px 26px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);}
+    .topgrid .nav{flex:0 0 46%;max-width:280px;min-width:0;background:rgba(255,255,255,.022);border-right:1px solid var(--border);padding:16px 14px;}
+    .topgrid .content{flex:1;min-width:0;padding:16px 14px;}
+    .topgrid .content .stat:last-child{margin-bottom:0;}
+    .topgrid .nav .tour:last-child{margin-bottom:0;}
+    .navlbl{font-size:11px;color:var(--text-soft);letter-spacing:.16em;text-transform:uppercase;margin:6px 4px 8px;}
+    .navitem{display:flex;align-items:center;gap:9px;background:linear-gradient(180deg,#1b1b20,#141417);border:1px solid var(--border2);border-radius:11px;padding:12px;margin-bottom:8px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text-dim);box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
+    .navitem .ic{font-size:16px;}
+    .navitem.on{border-color:var(--gold-dim);background:linear-gradient(180deg,#241a06,#1a1304);color:var(--gold-2);box-shadow:0 3px 12px rgba(201,150,58,.18), inset 0 1px 0 rgba(255,255,255,.06);}
+    .tour{background:linear-gradient(180deg,#1b1b20,#141417);border:1px solid var(--border2);border-radius:11px;padding:11px 12px;margin-bottom:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);}
+    .tour.on{border-color:var(--gold-dim);background:linear-gradient(180deg,#241a06,#1a1304);box-shadow:0 3px 12px rgba(201,150,58,.18), inset 0 1px 0 rgba(255,255,255,.06);}
+    .tour .tn{font-size:13px;font-weight:700;color:var(--text);}
+    .tour.on .tn{color:var(--gold-2);}
+    .tour .ts{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+
+    .stat{background:linear-gradient(180deg,#1c1c22,#141418);border:1px solid var(--border2);border-radius:14px;padding:18px;margin-bottom:12px;box-shadow:0 5px 18px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);}
+    .stat .n{font-family:'Cormorant Garamond',serif;font-size:38px;color:var(--gold-2);line-height:1;}
+    .stat .l{font-size:11px;color:var(--text-soft);letter-spacing:.12em;text-transform:uppercase;margin-top:6px;}
+    .stat .sub{font-size:13px;color:var(--text-dim);margin-top:5px;}
+
+    .rosterwide{margin-top:20px;}
+    .sectitle{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--cream);margin:2px 0 12px;}
+    .search{width:100%;background:var(--card);border:1px solid var(--border2);border-radius:11px;color:var(--cream);padding:12px 14px;font-size:15px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:12px;}
+    .search:focus{border-color:var(--gold-dim);}
+    .pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+    .pill{background:var(--card);border:1px solid var(--border2);border-radius:30px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--text-dim);cursor:pointer;}
+    .pill.on{background:var(--gold);border-color:var(--gold);color:#1a1200;}
+    .selbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:var(--gold-2);font-weight:700;}
+    .selbar button{background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--gold-2);font-size:12px;font-weight:700;padding:7px 11px;cursor:pointer;}
+    .rhead{display:grid;grid-template-columns:24px 1.1fr 1.2fr;gap:10px;padding:6px 8px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);font-weight:700;border-bottom:1px solid var(--border);}
+    .rrow{display:grid;grid-template-columns:24px 1.1fr 1.2fr;gap:10px;padding:12px 8px;border-bottom:1px solid var(--border);align-items:start;}
+    .cbx{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#1a1200;font-size:13px;font-weight:900;margin-top:2px;}
+    .cbx.on{background:var(--gold);border-color:var(--gold);}
+    .gcell{display:flex;gap:9px;align-items:flex-start;min-width:0;}
+    .g-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1f1a0c,#0c0c0e);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-weight:700;color:var(--gold-2);font-size:13px;flex-shrink:0;}
+    .gname{font-size:14px;font-weight:700;color:var(--cream);}
+    .g-badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:5px;margin-top:4px;}
+    .b-reg{background:rgba(52,199,123,.14);color:var(--green);}
+    .b-part{background:rgba(224,132,120,.14);color:var(--red);}
+    .ccell{min-width:0;font-size:12px;color:var(--text-soft);}
+    .ccell .em{word-break:break-word;color:var(--text-dim);}
+    .ricons{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+    .ricon{min-width:34px;height:30px;padding:0 8px;border-radius:7px;background:var(--card2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--gold-2);font-weight:700;}
+    .note{background:var(--card);border:1px dashed var(--border2);border-radius:12px;padding:18px;color:var(--text-dim);font-size:14px;line-height:1.6;}
+    .note b{color:var(--gold-2);}
+    .loading{color:var(--text-soft);font-size:14px;padding:20px 4px;}
+    .backlink{display:none;}
+    #fbWrap{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:12px;z-index:60;transition:transform .25s ease, opacity .25s ease;}
+    #fbWrap.fb-up{transform:translateY(-180%);opacity:0;pointer-events:none;}
+    #fbWrap.fb-hidden{display:none;}
+    #fbBtn{display:inline-flex;align-items:center;gap:6px;background:var(--gold);color:#1a1200;border:1px solid var(--gold-2);border-radius:30px;padding:11px 18px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;box-shadow:0 8px 22px rgba(0,0,0,.6);cursor:pointer;}
+    #fbBtn:active{transform:scale(.97);}
+    body.has-fb #app{padding-top:64px;}
+    .rtools{display:flex;gap:8px;margin-bottom:14px;align-items:center;}
+    .sortsel{flex:1;min-width:0;background:var(--card);border:1px solid var(--border2);border-radius:11px;color:var(--cream);padding:11px 12px;font-size:14px;font-family:'DM Sans',sans-serif;}
+    .toolbtn{background:var(--card);border:1px solid var(--gold-dim);border-radius:11px;color:var(--gold-2);font-size:13px;font-weight:700;padding:11px 14px;cursor:pointer;white-space:nowrap;}
+    .expmenu{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px;}
+    .gcomp{font-size:12px;color:var(--text-soft);margin-top:4px;}
+    .gaddr{margin-top:2px;}
+    .ricon.del{color:var(--red);border-color:rgba(224,132,120,.4);}
+    .detail{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:2px 0 12px;font-size:13px;}
+    .detail .drow{display:flex;gap:10px;padding:3px 0;}
+    .detail .dk{flex:0 0 96px;color:var(--text-soft);text-transform:uppercase;font-size:10px;letter-spacing:.08em;padding-top:2px;}
+    .detail .dv{flex:1;color:var(--text-dim);word-break:break-word;}
+    .ccell a{color:var(--gold-2);text-decoration:none;}
+    .erow{display:flex;gap:10px;align-items:center;padding:4px 0;}
+    .erow .dk{flex:0 0 92px;padding-top:0;}
+    .einput{flex:1;min-width:0;background:var(--card);border:1px solid var(--border2);border-radius:8px;color:var(--cream);padding:8px 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;}
+    .einput:focus{border-color:var(--gold-dim);}
+    .esave{background:var(--gold);border:none;border-radius:8px;color:#1a1200;font-weight:700;font-size:13px;padding:9px 14px;cursor:pointer;}
+    .ecancel{background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--text-dim);font-weight:700;font-size:13px;padding:9px 14px;cursor:pointer;}
+    .esec{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-2);font-weight:700;margin:14px 0 6px;border-top:1px solid var(--border);padding-top:10px;}
+    .esec:first-child{border-top:none;padding-top:0;margin-top:0;}
+    .cblock{border:1px solid var(--border);border-radius:9px;padding:8px 10px;margin-bottom:8px;background:rgba(255,255,255,.015);}
+    .cbh{font-size:12px;font-weight:700;color:var(--cream);margin-bottom:4px;}
+    .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--gold);color:#1a1200;font-weight:700;font-size:14px;padding:11px 18px;border-radius:30px;box-shadow:0 4px 18px rgba(0,0,0,.5);z-index:50;}
+    /* Messages */
+    .msgbubble{margin-bottom:10px;padding:10px 12px;border-radius:11px;white-space:pre-wrap;word-break:break-word;}
+    .msgbubble .who{font-size:11px;font-weight:700;margin-bottom:4px;}
+    .msgbubble .txt{font-size:14px;color:var(--cream);line-height:1.5;}
+    .mb-team{border:1px solid var(--gold-dim);background:var(--gold-bg);}
+    .mb-team .who{color:var(--gold-2);}
+    .mb-guest{border:1px solid var(--border2);background:var(--card);}
+    .mb-guest .who{color:var(--text-soft);}
+  </style>
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <img src="logo.png" alt="Stick of Joseph Tours" onerror="this.style.display='none'" />
+  <div class="tag">Tours — Admin</div>
+  <div class="gate-card">
+    <input type="text" name="username" autocomplete="username" value="soj-admin" style="display:none" readonly />
+    <label class="label" style="color:var(--teal)">Staff passcode</label>
+    <input class="input" id="pass" type="password" name="password" autocomplete="current-password" placeholder="Enter passcode" onkeydown="if(event.key==='Enter')gate()" />
+    <div id="gate-err" class="err hidden"></div>
+    <button class="btn" style="margin-top:14px" onclick="gate()">Enter</button>
+  </div>
+</div>
+
+<div id="app" class="wrap hidden"></div>
+
+<script>
+const SUPABASE_URL  = "https://relebaoqqmvyjnefsovc.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlbGViYW9xcW12eWpuZWZzb3ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzI1MzYsImV4cCI6MjA5NTQ0ODUzNn0.MZcnZLidJbyKcFhEZURD5iy_l2eRDwnTV-mo6j7w8Ug";
+const FUNCTIONS_URL = SUPABASE_URL + "/functions/v1/send-announcement";
+const NOTIFY_URL = SUPABASE_URL + "/functions/v1/notify";
+// Fire-and-forget email notification; never blocks or breaks the action
+function notifyEvent(payload){
+  try{
+    fetch(NOTIFY_URL,{ method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+SUPABASE_ANON, "apikey":SUPABASE_ANON }, body:JSON.stringify(payload) }).catch(function(e){ console.error("notify",e); });
+  }catch(e){ console.error("notify",e); }
+}
+
+/* ┌──────────────────────────────────────────────────────────┐
+   │  SET YOUR STAFF PASSCODE HERE — same word as staff.html.  │
+   └──────────────────────────────────────────────────────────┘ */
+const STAFF_PASSCODE = "1234";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+let TOURS=[], MEMBERS=[], TOUR=null, ROWS=[], VIEW="home", SEARCH="", FILTERS=new Set(), SORT="az", NEWGUEST=null;
+let MSGS=[], MSGTAB="broadcast", DM_OPEN=null, QA_SEARCH="";
+let DOCS=[], DOC_EDIT=null;
+let MATS=[], MAT_EDIT=null, ITINMSGS=[], ITIN_DAY=1;
+let SELECTED = new Set();
+let STAFF_OPEN = new Set();
+const HUBTOKEN = new URLSearchParams(location.search).get("hub") || "";
+let EXPANDED = new Set();
+let STAFFSORT = "first";
+let EXPORTMENU = false;
+
+function $(id){return document.getElementById(id);}
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function initials(n){return (n||"?").trim().split(" ").map(w=>w[0]).join("").substring(0,2).toUpperCase();}
+function toast(t){const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),1800);}
+function compNamesOf(r){ return (Array.isArray(r.companions)&&r.companions.length)? r.companions.filter(c=>c&&c.name).map(c=>c.name) : (r.travel_companion||"").split(",").map(x=>x.trim()).filter(Boolean); }
+function partySize(r){ return 1+compNamesOf(r).length; }
+const OCC_PARTY_ADMIN = { "Single":1, "Double":2, "Triple":3, "Quad":4 };
+function ordinal(n){ const s=["th","st","nd","rd"], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function adminCompBlockHTML(c,idx){
+  c=c||{};
+  const title=(typeof idx==="number")?(ordinal(idx+2)+" Traveler"):"Traveler";
+  return '<div class="cblock acomp">'+
+    '<div class="cbh"><span class="c-title">'+title+'</span><span style="float:right;color:var(--red);font-size:11px;font-weight:700;cursor:pointer" onclick="adminRemoveCompanion(this)">\u2715 Remove</span></div>'+
+    '<div class="erow"><span class="dk">Name</span><input class="einput c-name" value="'+esc(c.name||"")+'" /></div>'+
+    '<div class="erow"><span class="dk">Phone</span><input class="einput c-phone" value="'+esc(c.phone||"")+'" /></div>'+
+    '<div class="erow"><span class="dk">Email</span><input class="einput c-email" value="'+esc(c.email||"")+'" /></div>'+
+    '<div class="erow"><span class="dk">Shirt</span><input class="einput c-shirt" value="'+esc(c.shirt||"")+'" /></div>'+
+    '<div class="erow"><span class="dk">Restr.</span><input class="einput c-restr" value="'+esc(c.restrictions||"")+'" /></div>'+
+    '<div class="erow"><span class="dk">Snack</span><input class="einput c-snack" value="'+esc(c.snack||"")+'" /></div>'+
+    '<div class="erow"><span class="dk">Drink</span><input class="einput c-bev" value="'+esc(c.beverage||"")+'" /></div>'+
+  '</div>';
+}
+function adminReindex(tok){ document.querySelectorAll("#acomps-"+tok+" .acomp").forEach((b,i)=>{ const t=b.querySelector(".c-title"); if(t) t.textContent=ordinal(i+2)+" Traveler"; }); }
+function adminAddCompanion(tok){ const cont=document.getElementById("acomps-"+tok); if(!cont) return; if(cont.querySelectorAll(".acomp").length>=4) return; const tmp=document.createElement("div"); tmp.innerHTML=adminCompBlockHTML({}); const node=tmp.firstChild; cont.appendChild(node); adminReindex(tok); ["c-name","c-email","c-phone"].forEach(cl=>{ const el=node.querySelector("."+cl); if(el) el.addEventListener("change",()=>adminRebuildPreferred(tok)); }); adminRebuildPreferred(tok); }
+function adminRemoveCompanion(btn){ const b=btn.closest(".acomp"); const cont=b&&b.parentNode; if(b) b.remove(); if(cont){ const tok=cont.id.replace("acomps-",""); adminReindex(tok); adminRebuildPreferred(tok); } }
+const ADMIN_PREF = {};
+function adminPartyContacts(tok){
+  const people=[];
+  const nm=($("f-fullname-"+tok)?$("f-fullname-"+tok).value:"").trim()||"Main guest";
+  people.push({ name:nm, email:($("f-email-"+tok)?$("f-email-"+tok).value:"").trim(), phone:($("f-phone-"+tok)?$("f-phone-"+tok).value:"").trim() });
+  document.querySelectorAll("#acomps-"+tok+" .acomp").forEach((b,i)=>{
+    people.push({ name:(b.querySelector(".c-name").value||"").trim()||("Traveler "+(i+2)), email:(b.querySelector(".c-email").value||"").trim(), phone:(b.querySelector(".c-phone").value||"").trim() });
+  });
+  return people;
+}
+function adminRebuildPreferred(tok){
+  const st=ADMIN_PREF[tok]; if(!st) return;
+  const ec=$("apref-emails-"+tok), pc=$("apref-phones-"+tok); if(!ec||!pc) return;
+  const people=adminPartyContacts(tok);
+  const emails=[]; people.forEach(p=>{ if(p.email && !emails.find(e=>e.email===p.email)) emails.push(p); });
+  const phones=[]; people.forEach(p=>{ if(p.phone && !phones.find(e=>e.phone===p.phone)) phones.push(p); });
+  st.emails=new Set([...st.emails].filter(e=>emails.find(x=>x.email===e)));
+  if(st.phone && !phones.find(x=>x.phone===st.phone)) st.phone="";
+  ec.innerHTML = emails.length ? emails.map(p=>'<label class="checkrow" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:13px;color:var(--text-dim)"><input type="checkbox" data-em="'+esc(p.email)+'"'+(st.emails.has(p.email)?" checked":"")+' onchange="adminTogglePrefEmail(\''+tok+'\',this)"><span>'+esc(p.name)+" — "+esc(p.email)+'</span></label>').join("") : '<div style="font-size:12px;color:var(--text-soft)">No emails on file yet.</div>';
+  pc.innerHTML = phones.length ? phones.map(p=>'<label class="checkrow" style="display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:13px;color:var(--text-dim)"><input type="radio" name="apref-ph-'+tok+'" data-ph="'+esc(p.phone)+'"'+(st.phone===p.phone?" checked":"")+' onchange="adminSetPrefPhone(\''+tok+'\',this)"><span>'+esc(p.name)+" — "+esc(p.phone)+'</span></label>').join("") : '<div style="font-size:12px;color:var(--text-soft)">No phones on file yet.</div>';
+}
+function adminTogglePrefEmail(tok,el){ const st=ADMIN_PREF[tok]; if(!st)return; const v=el.getAttribute("data-em"); if(el.checked) st.emails.add(v); else st.emails.delete(v); }
+function adminSetPrefPhone(tok,el){ const st=ADMIN_PREF[tok]; if(st) st.phone=el.getAttribute("data-ph"); }
+
+const SESSION_KEY="soj_admin_session", SESSION_MS=24*60*60*1000;
+function sessionValid(){ try{ const ts=parseInt(localStorage.getItem(SESSION_KEY)||"0",10); return ts && (Date.now()-ts)<SESSION_MS; }catch(e){ return false; } }
+function sessionTouch(){ try{ localStorage.setItem(SESSION_KEY, String(Date.now())); }catch(e){} }
+function lockAdmin(){ try{ localStorage.removeItem(SESSION_KEY); }catch(e){} location.reload(); }
+function unlock(){ $("gate").classList.add("hidden"); $("app").classList.remove("hidden"); sessionTouch(); armBack(); boot(); }
+
+/* ===== Floating "Back" button (auto-hide on scroll down, slide in on scroll up) ===== */
+function ensureFloatBack(){
+  if(document.getElementById("fbWrap")) return;
+  const w=document.createElement("div"); w.id="fbWrap"; w.className="fb-hidden";
+  w.innerHTML='<button id="fbBtn" onclick="fbGo()">‹ Back to dashboard</button>';
+  document.body.appendChild(w);
+}
+function updateFloatBack(){
+  ensureFloatBack();
+  const w=$("fbWrap"), b=$("fbBtn"); if(!w||!b) return;
+  const onApp = $("app") && !$("app").classList.contains("hidden");
+  if(!onApp || VIEW==="home"){ w.classList.add("fb-hidden"); document.body.classList.remove("has-fb"); return; }
+  w.classList.remove("fb-hidden","fb-up");
+  document.body.classList.add("has-fb");
+  b.textContent = (VIEW==="messages" && DM_OPEN) ? "‹ Back to inbox" : "‹ Back to dashboard";
+}
+function fbGo(){
+  if(VIEW==="messages" && DM_OPEN){ DM_OPEN=null; render(); }
+  else { DM_OPEN=null; VIEW="home"; render(); }
+  window.scrollTo(0,0);
+}
+(function(){
+  let lastY=0;
+  window.addEventListener("scroll", function(){
+    const w=$("fbWrap"); if(!w || w.classList.contains("fb-hidden")) return;
+    const y=window.scrollY||document.documentElement.scrollTop||0;
+    if(y<60){ w.classList.remove("fb-up"); }
+    else if(y>lastY+4){ w.classList.add("fb-up"); }
+    else if(y<lastY-4){ w.classList.remove("fb-up"); }
+    lastY=y;
+  }, {passive:true});
+})();
+
+function gate(){
+  const v=$("pass").value, e=$("gate-err");
+  if(v===STAFF_PASSCODE){ unlock(); }
+  else { e.textContent="Incorrect passcode."; e.classList.remove("hidden"); }
+}
+
+/* Back/swipe inside admin returns to the dashboard instead of leaving the page */
+function armBack(){ try{ history.pushState({soj:"admin"},""); }catch(e){} }
+window.addEventListener("popstate", function(){
+  if($("app") && !$("app").classList.contains("hidden") && VIEW && VIEW!=="home"){
+    DM_OPEN=null; VIEW="home"; render(); armBack();
+  }
+});
+
+async function boot(){
+  $("app").innerHTML='<div class="loading">Loading dashboard…</div>';
+  try{
+    const t=await sb.from("tours").select("id,name,year,status,dates").order("year");
+    TOURS=t.data||[];
+    await loadMembers();
+  }catch(e){ console.error(e); }
+  TOUR = TOURS.find(t=>t.id==="church-history-2026") || TOURS[0] || null;
+  await loadRows();
+  render();
+}
+async function loadRows(){
+  ROWS=[]; SELECTED.clear();
+  if(!TOUR) return;
+  try{
+    const {data}=await sb.from("registrations").select("*").eq("tour_id",TOUR.id).order("created_at",{ascending:true});
+    ROWS=(data||[]).filter(r=>!r.is_staff);
+  }catch(e){ console.error(e); }
+}
+async function loadMembers(){
+  try{ const m=await sb.from("members").select("email,name,role,staff_title,initials,avatar_color,reg_token,messageable,featured,wants_alerts"); MEMBERS=m.data||[]; }catch(e){ console.error(e); }
+}
+async function loadMsgs(){
+  MSGS=[];
+  if(!TOUR) return;
+  try{
+    const {data}=await sb.from("messages").select("*").eq("tour_id",TOUR.id).order("created_at",{ascending:true});
+    MSGS=data||[];
+  }catch(e){ console.error(e); }
+}
+async function selectTour(id){ TOUR=TOURS.find(t=>t.id===id)||TOUR; VIEW="home"; FILTERS.clear(); await loadRows(); render(); }
+
+function statusLabel(s){
+  const k=(s||"").toLowerCase().replace(/[\s_-]+/g,"-");
+  if(k==="sold-out") return {t:"SOLD OUT",c:"var(--red)"};
+  if(k==="open"||k==="now-open") return {t:"NOW OPEN",c:"var(--green)"};
+  if(k==="coming-soon") return {t:"COMING SOON",c:"var(--teal)"};
+  return {t:(s||"").toUpperCase().replace(/_/g," "),c:"var(--text-soft)"};
+}
+
+function staffList(){ return MEMBERS.length ? MEMBERS : ["Mike","Hayden","Jackson","Nicole"].map(n=>({name:n})); }
+function scrollRoster(){ const el=$("rosterwide"); if(el) el.scrollIntoView({behavior:"smooth"}); }
+
+function render(){
+  updateFloatBack();
+  if(VIEW==="addguest"){ renderAddGuest(); return; }
+  if(VIEW==="staff"){ renderStaff(); return; }
+  if(VIEW==="messages"){ renderMessages(); return; }
+  if(VIEW==="documents"){ renderDocs(); return; }
+  if(VIEW==="materials"){ renderMats(); return; }
+  if(VIEW==="itinerary"){ renderItinFiles(); return; }
+
+  const total=ROWS.length;
+  const partial=ROWS.filter(r=>(r.status||"").toLowerCase()==="partial").length;
+  const fully=total-partial;
+  const deposits=ROWS.filter(r=>r.deposit_paid).length;
+  const headcount=ROWS.reduce((sum,r)=>sum+partySize(r),0);
+  const sNames=staffList().map(m=>m.name).filter(Boolean);
+  const sCount=sNames.length;
+  const staffSub = sNames.length>5 ? (sNames.slice(0,4).join(" · ")+" +"+(sNames.length-4)+" more") : sNames.join(" · ");
+  const tourName=(TOUR&&(TOUR.name||TOUR.id))||"";
+  const tourYr=(TOUR&&TOUR.year)?(" "+TOUR.year):"";
+
+  const navItems=[["roster","👥","Guest Roster"],["staff","⭐","Staff & Roles"],["messages","💬","Messages"],["documents","📋","Documents"],["materials","📚","Study Materials"],["itinerary","🗺️","Itinerary Files"]];
+  const navHtml = navItems.map(n=>{
+    const on = n[0]==="roster" ? "on" : "";
+    let click;
+    if(n[0]==="roster") click="scrollRoster()";
+    else if(n[0]==="staff") click="VIEW='staff';render()";
+    else if(n[0]==="messages") click="openMessages('broadcast')";
+    else if(n[0]==="documents") click="openDocs()";
+    else if(n[0]==="materials") click="openMats()";
+    else if(n[0]==="itinerary") click="openItinFiles()";
+    else click="toast('"+n[2]+" — coming in the next update')";
+    return `<div class="navitem ${on}" onclick="${click}"><span class="ic">${n[1]}</span>${n[2]}</div>`;
+  }).join("");
+  const toursHtml = TOURS.map(t=>{
+    const sl=statusLabel(t.status); const on=TOUR&&t.id===TOUR.id?"on":"";
+    return `<div class="tour ${on}" onclick="selectTour('${t.id}')"><div class="tn">${esc((t.name||t.id)+(t.year?(" "+t.year):""))}</div><div class="ts" style="color:${sl.c}">${esc(sl.t)}</div></div>`;
+  }).join("");
+
+  const statsHtml =
+    `<div class="stat"><div class="n">${headcount}</div><div class="l">Total Guests</div><div class="sub">${total} reservation${total===1?"":"s"} · ${esc(tourName)}</div></div>`+
+    `<div class="stat"><div class="n">${fully}</div><div class="l">Fully Registered</div><div class="sub">${partial} partial registration${partial===1?"":"s"}</div></div>`+
+    `<div class="stat"><div class="n">${deposits}</div><div class="l">Deposits Paid</div><div class="sub">${deposits} of ${total} reservations</div></div>`+
+    `<div class="stat"><div class="n">${sCount}</div><div class="l">Staff Members</div><div class="sub">${esc(staffSub)}</div></div>`;
+
+  const h =
+    `<div class="head"><div class="head-title" style="display:flex;align-items:center;gap:11px"><img src="logo.png" style="height:64px;width:auto;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" /><span class="serif" style="display:none;font-size:22px;color:var(--gold-2);line-height:1.05">The Stick of Joseph</span><span style="font-size:12px;color:var(--text-soft);letter-spacing:.18em;text-transform:uppercase;font-weight:700">Admin</span></div>`+
+    `<div class="actions">`+
+      `<div class="act" onclick="openMessages('broadcast')"><span class="ic">📡</span>Broadcast</div>`+
+      `<div class="act" onclick="openEmail()"><span class="ic">📧</span>Email</div>`+
+      `<div class="act" onclick="openAddGuest()"><span class="ic">＋</span>Add Guest</div>`+
+      `<div class="act gold" onclick="scrollRoster()"><span class="ic">✉️</span>Reg Links</div>`+
+      (HUBTOKEN?`<div class="act" onclick="location.href='hub.html?reg=${HUBTOKEN}'"><span class="ic">🏠</span>Hub</div>`:"")+
+      `<div class="act" onclick="lockAdmin()"><span class="ic">🔒</span>Lock</div>`+
+    `</div></div>`+
+    `<div class="topgrid"><div class="nav"><div class="navlbl">Navigation</div>${navHtml}<div class="navlbl" style="margin-top:14px">Tours</div>${toursHtml}</div>`+
+    `<div class="content">${statsHtml}</div></div>`+
+    `<div class="rosterwide" id="rosterwide"><div class="sectitle serif">Guest Roster</div>`+
+    `<input class="search" placeholder="Search guests by name or email…" value="${esc(SEARCH)}" oninput="SEARCH=this.value;renderRosterList()" />`+
+    `<div class="rtools"><select class="sortsel" onchange="setSort(this.value)">`+
+      `<option value="az"${SORT==="az"?" selected":""}>First name A–Z</option>`+
+      `<option value="last"${SORT==="last"?" selected":""}>Last name A–Z</option>`+
+      `<option value="za"${SORT==="za"?" selected":""}>First name Z–A</option>`+
+      `<option value="new"${SORT==="new"?" selected":""}>Recently added</option>`+
+    `</select><button class="toolbtn" onclick="toggleExportMenu()">⬇︎ Export ▾</button></div>`+
+    `${EXPORTMENU?`<div class="expmenu"><button class="toolbtn" onclick="exportCsv('all')">Everyone + staff</button><button class="toolbtn" onclick="exportCsv('guests')">Guests only</button><button class="toolbtn" onclick="exportCsv('staff')">Staff only</button></div>`:""}`+
+    `<div class="pills" id="pills"></div><div id="selbar"></div><div id="rosterlist"></div></div>`;
+
+  $("app").innerHTML=h;
+  renderPills();
+  renderRosterList();
+}
+
+function renderPills(){
+  const el=$("pills"); if(!el) return;
+  const total=ROWS.length;
+  const partial=ROWS.filter(r=>(r.status||"").toLowerCase()==="partial").length;
+  const reg=total-partial;
+  const staff=staffList().length;
+  const defs=[["partial","Partial",partial],["staff","Staff",staff],["registered","Registered",reg],["all","Guests",ROWS.reduce((s,r)=>s+partySize(r),0)]];
+  let h=defs.map(d=>`<div class="pill ${FILTERS.has(d[0])?"on":""}" onclick="toggleFilter('${d[0]}')">${d[1]} (${d[2]})</div>`).join("");
+  if(FILTERS.size>0) h+=`<div class="pill" style="color:var(--text-soft)" onclick="clearFilters()">✕ Clear</div>`;
+  el.innerHTML=h;
+}
+function toggleFilter(f){ if(FILTERS.has(f)) FILTERS.delete(f); else FILTERS.add(f); SELECTED.clear(); renderPills(); renderRosterList(); }
+function clearFilters(){ FILTERS.clear(); SELECTED.clear(); renderPills(); renderRosterList(); }
+
+function staffObjs(){ return staffList().map(m=>({ staff:true, full_name:m.name, email:m.email, phone:m.phone, reg_token:m.reg_token, staff_title:m.staff_title, contact:(m.staff_title||m.role||"Staff member") })); }
+function applyGuestSort(list){
+  const _ln=x=>{const p=(x||"").trim().split(/\s+/);return (p[p.length-1]||"").toLowerCase();};
+  if(SORT==="az") list.sort((a,b)=>(a.full_name||"").localeCompare(b.full_name||""));
+  else if(SORT==="za") list.sort((a,b)=>(b.full_name||"").localeCompare(a.full_name||""));
+  else if(SORT==="last") list.sort((a,b)=>_ln(a.full_name).localeCompare(_ln(b.full_name)));
+  else if(SORT==="new") list.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  return list;
+}
+function currentList(){
+  const q=SEARCH.trim().toLowerCase();
+  const active=FILTERS, showAll=active.size===0;
+  const isPartial=r=>(r.status||"").toLowerCase()==="partial";
+  const gmap=new Map();
+  const add=arr=>arr.forEach(r=>gmap.set(r.reg_token,r));
+  if(showAll||active.has("all")) add(ROWS);
+  if(active.has("registered")) add(ROWS.filter(r=>!isPartial(r)));
+  if(active.has("partial")) add(ROWS.filter(r=>isPartial(r)));
+  let guests=[...gmap.values()];
+  let staff=(showAll||active.has("staff"))?staffObjs():[];
+  if(q){
+    guests=guests.filter(r=>(r.full_name||"").toLowerCase().includes(q)||(r.email||"").toLowerCase().includes(q));
+    staff=staff.filter(m=>(m.full_name||"").toLowerCase().includes(q));
+  }
+  applyGuestSort(guests);
+  staff.sort((a,b)=>(a.full_name||"").localeCompare(b.full_name||""));
+  return guests.concat(staff);
+}
+
+function keyOf(r){ return r.staff ? ("s:"+(r.email||r.full_name||"")) : ("g:"+(r.reg_token||"")); }
+function editPanel(r){
+  const tok=r.reg_token;
+  const comps=(Array.isArray(r.companions)&&r.companions.length)?r.companions:(r.travel_companion||"").split(",").map(x=>x.trim()).filter(Boolean).map(n=>({name:n}));
+  const fi=(lbl,id,val)=>`<div class="erow"><span class="dk">${lbl}</span><input class="einput" id="${id}-${tok}" value="${esc(val||"")}" /></div>`;
+  const ta=(lbl,id,val)=>`<div class="erow"><span class="dk">${lbl}</span><textarea class="einput" id="${id}-${tok}" rows="2">${esc(val||"")}</textarea></div>`;
+  let eName="",ePhone="";
+  if(r.emergency_contact){ const m=String(r.emergency_contact).split("—"); eName=(m[0]||"").trim(); ePhone=(m[1]||"").trim(); }
+  ADMIN_PREF[tok]={ emails:new Set((Array.isArray(r.preferred_emails)?r.preferred_emails:[]).filter(Boolean)), phone:(r.preferred_contact||"") };
+  const occN=OCC_PARTY_ADMIN[(r.occupancy||"")]||0;
+  const want=Math.max(occN>0?occN-1:0, comps.length);
+  let cblocks="";
+  for(let i=0;i<want;i++){ cblocks+=adminCompBlockHTML(comps[i]||{}, i); }
+  return `<div class="detail">`+
+    `<div class="esec">Primary guest</div>`+
+    fi("Name","f-fullname",r.full_name)+
+    fi("Email","f-email",r.email)+
+    fi("Phone","f-phone",r.phone)+
+    fi("Address","f-address",r.address)+
+    fi("Shirt","f-shirt",r.shirt_size)+
+    fi("Restrictions","f-allergies",r.allergies)+
+    fi("Snack","f-snack",r.snack_pref)+
+    fi("Drink","f-drink",r.beverage_pref)+
+    `<div class="esec">Emergency contact</div>`+
+    fi("Name","f-emname",eName)+
+    fi("Phone","f-emphone",ePhone)+
+    `<div class="esec">Rooming</div>`+
+    fi("Rooming with","f-rooming",r.rooming_with)+
+    `<div style="font-size:11px;color:var(--text-soft);margin:-2px 0 4px 0">Name(s) of anyone sharing a room, even from a different reservation.</div>`+
+    `<div class="esec">Companions</div>`+
+    `<div id="acomps-${tok}">${cblocks}</div>`+
+    `<button class="ecancel" style="border:1px dashed var(--gold-dim);color:var(--gold-2);width:100%;margin-bottom:8px" onclick="adminAddCompanion('${tok}')">＋ Add companion</button>`+
+    `<div class="esec">Trip communications</div>`+
+    `<div style="font-size:11px;color:var(--text-soft);margin-bottom:6px">Emails to receive info (check all):</div>`+
+    `<div id="apref-emails-${tok}"></div>`+
+    `<div style="font-size:11px;color:var(--text-soft);margin:10px 0 6px">Best phone for calls/texts:</div>`+
+    `<div id="apref-phones-${tok}"></div>`+
+    `<div class="esec">Party notes</div>`+
+    ta("Notes","f-notes",r.notes)+
+    `<div style="display:flex;gap:8px;margin-top:10px"><button class="esave" onclick="saveGuest('${tok}')">Save changes</button><button class="ecancel" onclick="toggleExpand('${tok}')">Close</button></div>`+
+  `</div>`;
+}
+function renderRosterList(){
+  const el=$("rosterlist"); if(!el) return;
+  const list=currentList();
+  renderSelbar();
+  if(!list.length){ el.innerHTML='<div class="loading">'+(ROWS.length?"No guests match this view.":"No guests yet for this tour.")+'</div>'; return; }
+
+  const selectable = list.filter(r=> r.staff ? r.email : r.reg_token);
+  const allSel = selectable.length>0 && selectable.every(r=>SELECTED.has(keyOf(r)));
+  let html = `<div class="rhead"><div><div class="cbx ${allSel?"on":""}" onclick="toggleAll()">${allSel?"✓":""}</div></div><div>Guest</div><div>Contact</div></div>`;
+
+  html += list.map(r=>{
+    const k=keyOf(r), sel=SELECTED.has(k);
+    const cbx=`<div class="cbx ${sel?"on":""}" onclick="toggleSel('${k}')">${sel?"✓":""}</div>`;
+    if(r.staff){
+      const sem=(r.email||"").replace(/'/g,"");
+      const sexp=STAFF_OPEN.has(r.email);
+      let sacts;
+      if(r.reg_token){ sacts=`<div class="ricon" title="Copy hub link" onclick="copyHub('${r.reg_token}')">🔗</div><div class="ricon" title="Copy info form link" onclick="copyReg('${r.reg_token}')">📝</div>`; }
+      else { sacts=`<div class="ricon" title="Create link" style="width:auto;padding:0 10px" onclick="createStaffLink('${sem}')">＋ Link</div>`; }
+      sacts+=`<div class="ricon" title="Edit info" onclick="toggleStaffExpand('${sem}')">${sexp?"▲":"ⓘ"}</div>`;
+      let srow=`<div class="rrow" style="align-items:center">${cbx}<div class="gcell"><div class="g-av">${initials(r.full_name)}</div><div><div class="gname">${esc(r.full_name||"")}</div><div class="gcomp">${esc(r.staff_title||r.contact||"Staff")}</div></div></div><div class="ccell"><div class="ricons" style="margin-top:0">${sacts}</div></div></div>`;
+      if(sexp) srow+=editStaffPanel(r);
+      return srow;
+    }
+    const isPart=(r.status||"").toLowerCase()==="partial";
+    const _cn=compNamesOf(r);
+    const partyPill=`<span class="g-badge" style="background:var(--gold-bg);color:var(--gold-2);border:1px solid var(--gold-dim);margin-right:6px" title="People in party">${1+_cn.length}</span>`;
+    const badge=partyPill+(isPart?`<span class="g-badge b-part">Partial</span>`:`<span class="g-badge b-reg">Registered</span>`);
+    const comp=_cn.length?`<div class="gcomp">${_cn.map(n=>"+ "+esc(n)).join("<br>")}</div>`:"";
+    const pref=r.preferred_contact?`<div class="em" style="color:var(--gold-2);font-weight:700">★ ${esc(r.preferred_contact)}</div>`:"";
+    const email=r.email?`<div class="em"><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></div>`:"";
+    const tel=(r.phone||"").replace(/[^0-9+]/g,"");
+    const phone=r.phone?`<div><a href="tel:${esc(tel)}">${esc(r.phone)}</a></div>`:"";
+    const addr=r.address?`<div class="gaddr">${esc(r.address)}</div>`:"";
+    const exp=EXPANDED.has(r.reg_token);
+    const nm=esc((r.full_name||"").replace(/'/g,""));
+    const icons=r.reg_token?`<div class="ricons"><div class="ricon" title="Copy hub link" onclick="copyHub('${r.reg_token}')">🔗</div><div class="ricon" title="Email reg link" onclick="emailReg('${r.reg_token}','${esc(r.email||"")}','${esc((r.full_name||"").split(" ")[0])}')">✉️</div><div class="ricon" title="Details" onclick="toggleExpand('${r.reg_token}')">${exp?"▲":"ⓘ"}</div><div class="ricon del" title="Delete" onclick="delGuest('${r.reg_token}','${nm}')">🗑</div></div>`:"";
+    let row=`<div class="rrow">${cbx}<div class="gcell"><div class="g-av">${initials(r.full_name)}</div><div><div class="gname">${esc(r.full_name||"(no name)")}</div>${badge}${comp}</div></div><div class="ccell">${pref}${email}${phone}${addr}${icons}</div></div>`;
+    if(exp){ row += editPanel(r); }
+    return row;
+  }).join("");
+
+  el.innerHTML=html;
+}
+
+function renderSelbar(){
+  const el=$("selbar"); if(!el) return;
+  if(SELECTED.size===0){ el.innerHTML=""; return; }
+  const guestSel=[...SELECTED].filter(k=>k.indexOf("g:")===0).length;
+  let btns=`<button onclick="exportSelected()">⬇︎ Export selected</button>`;
+  if(guestSel>0) btns+=`<button onclick="copySelected()">Copy links</button>`;
+  btns+=`<button onclick="clearSel()">Clear</button>`;
+  el.innerHTML=`<span>${SELECTED.size} selected</span>`+btns;
+}
+function toggleSel(key){ if(SELECTED.has(key)) SELECTED.delete(key); else SELECTED.add(key); renderRosterList(); }
+function toggleAll(){
+  const list=currentList().filter(r=> r.staff ? r.email : r.reg_token);
+  const allSel=list.length>0 && list.every(r=>SELECTED.has(keyOf(r)));
+  if(allSel) list.forEach(r=>SELECTED.delete(keyOf(r)));
+  else list.forEach(r=>SELECTED.add(keyOf(r)));
+  renderRosterList();
+}
+function clearSel(){ SELECTED.clear(); renderRosterList(); }
+function copySelected(){
+  const urls=[...SELECTED].filter(k=>k.indexOf("g:")===0).map(k=>hubUrl(k.slice(2))).join("\n");
+  if(!urls){ toast("No guests selected"); return; }
+  copyText(urls,"Hub links");
+}
+function manifestCols(){ return ["Name","Type","Group","Email","Phone","Shirt","Restrictions","Snack","Drink","Rooming with","Emergency contact","Status","Deposit","Notes"]; }
+function staffRow(m){ return [m.name,"Staff",(m.staff_title||"Crew"),"","","","","","","","","","",""]; }
+function pushGuestRows(rows,r){
+  rows.push([r.full_name,"Guest",r.full_name,r.email,r.phone,r.shirt_size,r.allergies,r.snack_pref,r.beverage_pref,r.rooming_with,r.emergency_contact,r.status,(r.deposit_paid?"Yes":"No"),r.notes]);
+  const comps=Array.isArray(r.companions)?r.companions:[];
+  if(comps.length){
+    comps.forEach(c=>rows.push([c.name,"Companion",r.full_name,c.email||"",c.phone||"",c.shirt||"",c.restrictions||"","","",r.rooming_with||"","",r.status,"",""]));
+  } else {
+    (r.travel_companion||"").split(",").map(x=>x.trim()).filter(Boolean).forEach(cn=>rows.push([cn,"Companion",r.full_name,"","","","","","",r.rooming_with||"","",r.status,"",""]));
+  }
+}
+function exportSelected(){
+  const gset=new Set([...SELECTED].filter(k=>k.indexOf("g:")===0).map(k=>k.slice(2)));
+  const sset=new Set([...SELECTED].filter(k=>k.indexOf("s:")===0).map(k=>k.slice(2)));
+  const guests=ROWS.filter(r=>gset.has(r.reg_token));
+  const staff=MEMBERS.filter(m=>sset.has(m.email||m.name));
+  const rows=[];
+  guests.slice().sort((a,b)=>(a.full_name||"").localeCompare(b.full_name||"")).forEach(r=>pushGuestRows(rows,r));
+  staff.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).forEach(m=>rows.push(staffRow(m)));
+  if(!rows.length){ toast("Nothing selected"); return; }
+  deliver(manifestCols(),rows,((TOUR&&TOUR.id)||"soj")+"-selected.csv");
+}
+
+function setSort(v){ SORT=v; renderRosterList(); }
+function toggleExpand(t){ if(EXPANDED.has(t)) EXPANDED.delete(t); else EXPANDED.add(t); renderRosterList(); if(EXPANDED.has(t)) setTimeout(()=>{ adminRebuildPreferred(t); const ids=["f-fullname-"+t,"f-email-"+t,"f-phone-"+t]; ids.forEach(id=>{ const e=$(id); if(e) e.addEventListener("change",()=>adminRebuildPreferred(t)); }); document.querySelectorAll("#acomps-"+t+" .c-name, #acomps-"+t+" .c-email, #acomps-"+t+" .c-phone").forEach(el=>el.addEventListener("change",()=>adminRebuildPreferred(t))); },0); }
+async function delGuest(token,name){
+  if(!confirm("Delete "+(name||"this guest")+"? This permanently removes them from the roster.")) return;
+  try{
+    const {error}=await sb.from("registrations").delete().eq("reg_token",token);
+    if(error) throw error;
+    EXPANDED.delete(token); SELECTED.delete(token);
+    await loadRows(); render(); toast("Deleted");
+  }catch(e){ alert("Couldn't delete: "+(e.message||"unknown error")+"\n\nIf nothing was removed, the database needs delete permission turned on — ask Claude for the one-line fix."); }
+}
+async function saveGuest(token){
+  const gv=id=>{ const e=$(id+"-"+token); return e?(e.value||"").trim():""; };
+  const comps=[];
+  document.querySelectorAll("#acomps-"+token+" .acomp").forEach(b=>{
+    const nm=(b.querySelector(".c-name").value||"").trim();
+    if(!nm) return;
+    comps.push({ name:nm, phone:(b.querySelector(".c-phone").value||"").trim(), email:(b.querySelector(".c-email").value||"").trim(), shirt:(b.querySelector(".c-shirt").value||"").trim(), restrictions:(b.querySelector(".c-restr").value||"").trim(), snack:(b.querySelector(".c-snack").value||"").trim(), beverage:(b.querySelector(".c-bev").value||"").trim() });
+  });
+  const emName=gv("f-emname"), emPhone=gv("f-emphone");
+  const emerg=(emName||emPhone)?(emName+(emPhone?(" — "+emPhone):"")):"";
+  const fullName=gv("f-fullname");
+  const upd={
+    email:gv("f-email"), phone:gv("f-phone"), address:gv("f-address"),
+    shirt_size:gv("f-shirt"), allergies:gv("f-allergies"), snack_pref:gv("f-snack"), beverage_pref:gv("f-drink"),
+    notes:gv("f-notes"), companions:comps,
+    emergency_contact:emerg, rooming_with:gv("f-rooming")
+  };
+  if(comps.length){ upd.travel_companion=comps.map(c=>c.name).join(", "); }
+  if(fullName){ upd.full_name=fullName; }
+  { const st=ADMIN_PREF[token]; if(st){ upd.preferred_emails=[...st.emails]; upd.preferred_contact=st.phone||""; } }
+  try{
+    const {error}=await sb.from("registrations").update(upd).eq("reg_token",token);
+    if(error) throw error;
+    await loadRows(); render(); toast("Saved");
+  }catch(e){ alert("Couldn't save: "+(e.message||"error")+"\n\nIf it mentions a missing column, run the SQL Claude gave you to add the new fields."); }
+}
+function toggleExportMenu(){ EXPORTMENU=!EXPORTMENU; render(); }
+function exportCsv(scope){
+  scope = scope || "guests";
+  let cols, rows=[];
+  if(scope==="staff"){
+    cols=["Name","Title"];
+    MEMBERS.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).forEach(m=>rows.push([m.name, m.staff_title||m.role||"Staff"]));
+  } else if(scope==="all"){
+    cols=manifestCols();
+    ROWS.slice().sort((a,b)=>(a.full_name||"").localeCompare(b.full_name||"")).forEach(r=>pushGuestRows(rows,r));
+    MEMBERS.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).forEach(m=>rows.push(staffRow(m)));
+  } else {
+    cols=["Name","Email","Phone","Companions","Address","Shirt","Restrictions","Snack","Drink","Rooming with","Emergency contact","Status","Deposit","Notes"];
+    ROWS.slice().sort((a,b)=>(a.full_name||"").localeCompare(b.full_name||"")).forEach(r=>rows.push([r.full_name,r.email,r.phone,r.travel_companion,r.address,r.shirt_size,r.allergies,r.snack_pref,r.beverage_pref,r.rooming_with,r.emergency_contact,r.status,(r.deposit_paid?"Yes":"No"),r.notes]));
+  }
+  deliver(cols,rows,((TOUR&&TOUR.id)||"soj")+"-"+scope+".csv");
+}
+function rowsToCsv(cols,rows){ const c=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"'; return "\ufeff"+[cols.map(c).join(",")].concat(rows.map(r=>r.map(c).join(","))).join("\r\n"); }
+function rowsToTsv(cols,rows){ const c=v=>String(v==null?"":v).replace(/[\t\r\n]+/g," "); return [cols.map(c).join("\t")].concat(rows.map(r=>r.map(c).join("\t"))).join("\n"); }
+function deliver(cols,rows,fname){
+  EXPORTMENU=false;
+  const csv=rowsToCsv(cols,rows);
+  try{
+    const file=new File([csv],fname,{type:"text/csv"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:fname}).then(()=>toast("Pick ‘Save to Files’")).catch(()=>{});
+      render(); return;
+    }
+  }catch(e){}
+  const tsv=rowsToTsv(cols,rows);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(tsv).then(()=>alert("Copied as a table.\n\nOpen Numbers (or Excel), tap a cell, and Paste — it fills in real columns.\n\nTip: opening soj-tours.vercel.app in Safari lets you save an actual .csv file via ‘Save to Files’.")).catch(()=>prompt("Copy this:",tsv));
+  } else { prompt("Copy this:",tsv); }
+  render();
+}
+
+function setStaffSort(v){ STAFFSORT=v; renderStaff(); }
+function renderStaff(){
+  let h=`<div class="head"><div class="head-title" style="display:flex;align-items:center;gap:11px"><img src="logo.png" style="height:64px;width:auto;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" /><span class="serif" style="display:none;font-size:22px;color:var(--gold-2);line-height:1.05">The Stick of Joseph</span><span style="font-size:12px;color:var(--text-soft);letter-spacing:.18em;text-transform:uppercase;font-weight:700">Admin</span></div></div>`;
+  h+=`<span class="backlink" onclick="VIEW='home';render()">‹ Back to dashboard</span>`;
+  h+=`<div class="sectitle serif">Staff &amp; Crew</div>`;
+  h+=`<div style="max-width:460px;margin-bottom:18px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">`+
+     `<div style="flex:1;min-width:150px"><label class="label">Name</label><input class="input" id="st-name" placeholder="First and last name" /></div>`+
+     `<div style="flex:1;min-width:130px"><label class="label">Title</label><input class="input" id="st-title" placeholder="Crew, Guide, Driver…" /></div></div>`+
+     `<div id="st-msg" class="err hidden"></div>`+
+     `<button class="btn" style="margin-top:10px" onclick="addStaff()">＋ Add staff member</button></div>`;
+  h+=`<div class="note" style="margin-bottom:14px;font-size:13px">Tap <b>+ Link</b> on a staff member to create their private link. Send <b>info</b> so they can fill in their details, and <b>hub</b> for their tour hub. Staff are not counted in your guest total.</div>`;
+  h+=`<div class="rtools"><select class="sortsel" onchange="setStaffSort(this.value)">`+
+     `<option value="first"${STAFFSORT==="first"?" selected":""}>First name A–Z</option>`+
+     `<option value="last"${STAFFSORT==="last"?" selected":""}>Last name A–Z</option>`+
+     `</select></div>`;
+  let mem=MEMBERS.slice();
+  const ln=x=>{const p=(x||"").trim().split(/\s+/);return (p[p.length-1]||"").toLowerCase();};
+  if(STAFFSORT==="last") mem.sort((a,b)=>ln(a.name).localeCompare(ln(b.name)));
+  else mem.sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  if(!mem.length){ h+=`<div class="loading">No staff yet — add someone above.</div>`; }
+  else {
+    h+=`<div class="rhead" style="grid-template-columns:1fr auto"><div>Staff member (${mem.length})</div><div></div></div>`;
+    h+=mem.map(m=>{
+      const em=(m.email||"").replace(/'/g,"");
+      const nm=esc((m.name||"").replace(/'/g,""));
+      const col=m.avatar_color?`style="color:${esc(m.avatar_color)}"`:"";
+      let acts;
+      if(m.reg_token){
+        acts=`<div class="ricon" title="Copy hub link" onclick="copyHub('${m.reg_token}')">🔗</div>`+
+             `<div class="ricon" title="Copy info form link" onclick="copyReg('${m.reg_token}')">📝</div>`+
+             `<div class="ricon del" title="Remove" onclick="delStaff('${em}','${nm}')">🗑</div>`;
+      } else {
+        acts=`<div class="ricon" title="Create link" style="width:auto;padding:0 12px;color:var(--gold-2)" onclick="createStaffLink('${em}')">＋ Link</div>`+
+             `<div class="ricon del" title="Remove" onclick="delStaff('${em}','${nm}')">🗑</div>`;
+      }
+      return `<div class="rrow" style="grid-template-columns:1fr auto;align-items:center"><div class="gcell"><div class="g-av" ${col}>${initials(m.name)}</div><div><div class="gname">${esc(m.name||"")}</div><div class="gcomp">${esc(m.staff_title||m.role||"Staff")}</div></div></div><div class="ricons" style="margin-top:0">${acts}</div></div>`;
+    }).join("");
+  }
+  $("app").innerHTML=h;
+}
+async function addStaff(){
+  const name=($("st-name").value||"").trim();
+  const title=($("st-title").value||"").trim()||"Crew";
+  const msg=$("st-msg"); if(msg) msg.classList.add("hidden");
+  if(!name){ if(msg){ msg.textContent="Please enter a name."; msg.classList.remove("hidden"); } return; }
+  const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,".").replace(/^\.|\.$/g,"");
+  const email=slug+"."+Date.now()+"@crew.sojtours.internal";
+  const colors=["#E9A228","#2BC4C9","#34C77B","#E08478","#9A7320","#7C83FF","#C98BDB","#5BB8A6","#D98C5F","#A0A7B5"];
+  const color=colors[Math.floor(Math.random()*colors.length)];
+  try{
+    const {error}=await sb.from("members").insert({email:email,name:name,role:"staff",staff_title:title,initials:initials(name),avatar_color:color});
+    if(error) throw error;
+    await loadMembers(); renderStaff(); toast("Added "+name);
+  }catch(e){ if(msg){ msg.textContent="Couldn't add: "+(e.message||"error"); msg.classList.remove("hidden"); } }
+}
+async function delStaff(email,name){
+  if(!confirm("Remove "+(name||"this person")+" from staff?")) return;
+  try{
+    const {error}=await sb.from("members").delete().eq("email",email);
+    if(error) throw error;
+    await loadMembers(); renderStaff(); toast("Removed");
+  }catch(e){ alert("Couldn't remove: "+(e.message||"error")+"\n\nIf nothing was removed, the Staff table needs add/remove permission — run the SQL Claude gave you."); }
+}
+async function createStaffLink(email){
+  const m=MEMBERS.find(x=>(x.email||"")===email); if(!m){ return; }
+  try{
+    let token=null;
+    const ins=await sb.from("registrations").insert({tour_id:TOUR.id, full_name:m.name, email:m.email, status:"partial", is_staff:true}).select().single();
+    if(ins.error){
+      const ex=await sb.from("registrations").select("reg_token").eq("tour_id",TOUR.id).eq("email",m.email).single();
+      if(ex.error||!ex.data) throw ins.error;
+      token=ex.data.reg_token;
+    } else { token=ins.data.reg_token; }
+    const {error:e2}=await sb.from("members").update({reg_token:token,is_staff:true}).eq("email",email);
+    if(e2){ await sb.from("members").update({reg_token:token}).eq("email",email); }
+    await loadMembers(); await loadRows(); if(VIEW==='staff'){ renderStaff(); } else { render(); }
+    copyText(hubUrl(token),"Hub link");
+  }catch(e){ alert("Couldn't create link: "+(e.message||"error")); }
+}
+function staffKey(m){ return (m.email||"").replace(/[^a-z0-9]/gi,""); }
+function toggleStaffExpand(email){ if(STAFF_OPEN.has(email)) STAFF_OPEN.delete(email); else STAFF_OPEN.add(email); if(VIEW==='staff') renderStaff(); else renderRosterList(); }
+function editStaffPanel(m){
+  const id=staffKey(m);
+  const fi=(lbl,key,val)=>`<div class="erow"><span class="dk">${lbl}</span><input class="einput" id="sf-${key}-${id}" value="${esc(val||"")}" /></div>`;
+  const em=(m.email||"").replace(/'/g,"");
+  const isHostRole=((m.staff_title||"")+" "+(m.role||"")).toLowerCase().match(/host|concierge/)!=null;
+  const msgOn = m.messageable===true || isHostRole;
+  const circOn = m.featured===true || isHostRole;
+  const alertsOn = m.wants_alerts===true;
+  const tog=(key,label,on,note)=>`<label class="erow" style="align-items:center;cursor:pointer"><span class="dk">${label}</span><span style="flex:1;display:flex;align-items:center;gap:8px"><input type="checkbox" id="sf-${key}-${id}" ${on?"checked":""} style="width:20px;height:20px"><span style="font-size:12px;color:var(--text-soft)">${note}</span></span></label>`;
+  return `<div class="detail"><div class="esec">Staff details</div>`+
+    fi("Name","name",m.full_name||m.name)+
+    fi("Title","title",m.staff_title)+
+    fi("Phone","phone",m.phone)+
+    fi("Email","email",m.email)+
+    `<div class="esec">Notifications</div>`+
+    tog("alerts","Email alerts",alertsOn,"Email this person when a guest messages the team (needs a real email above)")+
+    `<div class="esec">Hub visibility</div>`+
+    tog("msg","Messages",msgOn,"Guests can message this person")+
+    tog("circ","Show circle",circOn,"Appears as a host circle in the hub")+
+    `<div style="font-size:11px;color:var(--text-soft);margin:2px 0 4px">Hosts &amp; Concierge show automatically; use these to add or override others.</div>`+
+    `<div style="display:flex;gap:8px;margin-top:10px"><button class="esave" onclick="saveStaff('${em}')">Save</button><button class="ecancel" onclick="toggleStaffExpand('${em}')">Close</button></div></div>`;
+}
+async function saveStaff(email){
+  const id=email.replace(/[^a-z0-9]/gi,"");
+  const gv=k=>{const e=$("sf-"+k+"-"+id);return e?(e.value||"").trim():"";};
+  const ck=k=>{const e=$("sf-"+k+"-"+id);return e?!!e.checked:false;};
+  const name=gv("name");
+  const upd={ name:name, staff_title:gv("title"), phone:gv("phone"), initials:initials(name), messageable:ck("msg"), featured:ck("circ"), wants_alerts:ck("alerts") };
+  const newEmail=gv("email");
+  if(newEmail && newEmail!==email) upd.email=newEmail;
+  try{
+    const {error}=await sb.from("members").update(upd).eq("email",email);
+    if(error) throw error;
+    STAFF_OPEN.delete(email);
+    await loadMembers();
+    if(VIEW==='staff') renderStaff(); else renderRosterList();
+    toast("Saved");
+  }catch(e){ alert("Couldn't save: "+(e.message||"error")); }
+}
+
+/* ============ MESSAGES (Broadcast + Inbox) ============ */
+/* ============ DOCUMENTS (Logistics / Materials library) ============ */
+async function loadDocs(){
+  DOCS=[];
+  if(!TOUR) return;
+  try{
+    const {data}=await sb.from("documents").select("*").eq("tour_id",TOUR.id).order("created_at",{ascending:false});
+    DOCS=data||[];
+  }catch(e){ console.error(e); }
+}
+async function openDocs(){
+  VIEW="documents"; DOC_EDIT=null;
+  $("app").innerHTML='<div class="loading">Loading documents…</div>';
+  await loadDocs(); render();
+}
+const DOC_CATS=["Logistics","Forms","Instructions","Other"];
+/* ---- cross-add helpers: drop a copy into other places at creation ---- */
+function crossDayPicker(idprefix){
+  let o=""; for(let i=1;i<=10;i++){ o+='<option value="'+i+'">Day '+i+'</option>'; }
+  return '<select class="einput" id="'+idprefix+'-day" style="margin-top:6px">'+o+'</select>';
+}
+function crossBoxes(opts){
+  // opts: array of {id,label,extra}  -> returns HTML rows
+  let h='<div class="esec">Also add to</div>';
+  opts.forEach(o=>{
+    h+='<label class="erow" style="align-items:center;cursor:pointer"><span class="dk">'+o.label+'</span><span style="flex:1"><input type="checkbox" id="'+o.id+'" style="width:20px;height:20px;vertical-align:middle">'+(o.extra||"")+'</span></label>';
+  });
+  return h;
+}
+async function crossAddMaterial(title,desc,url,type){
+  try{ await sb.from("materials").insert({tour_id:TOUR.id,title:title,type:(type||"pdf"),tag:"",description:desc||"",author:"",meta:"",url:url||""}); }catch(e){ console.error("xmat",e); }
+}
+async function crossAddDocument(title,desc,url,cat){
+  try{ await sb.from("documents").insert({tour_id:TOUR.id,title:title,category:(cat||"Logistics"),description:desc||"",url:url||""}); }catch(e){ console.error("xdoc",e); }
+}
+async function crossAddItin(day,type,title,desc,url){
+  const body="[res]"+(type||"Handout")+"|"+title+"|"+(desc||"")+"|"+(url||"")+"[/res]";
+  try{ await sb.from("messages").insert({tour_id:TOUR.id,channel:"itinerary",day_number:day,author_name:"Tour Team",body:body}); }catch(e){ console.error("xitin",e); }
+}
+
+function docFormHTML(d){
+  d=d||{};
+  const isEdit=!!d.id;
+  let catOpts=DOC_CATS.map(c=>'<option value="'+c+'"'+(((d.category||"Logistics")===c)?" selected":"")+'>'+c+'</option>').join("");
+  return '<div class="detail"><div class="esec" style="margin-top:0">'+(isEdit?"Edit document":"Add a document")+'</div>'+
+    '<div class="erow"><span class="dk">Title</span><input class="einput" id="doc-title" value="'+esc(d.title||"")+'" placeholder="e.g. Packing List" /></div>'+
+    '<div class="erow"><span class="dk">Category</span><select class="einput" id="doc-cat">'+catOpts+'</select></div>'+
+    '<div class="erow" style="align-items:flex-start"><span class="dk">Description</span><textarea class="einput" id="doc-desc" rows="2" placeholder="Optional short description">'+esc(d.description||"")+'</textarea></div>'+
+    '<div class="erow"><span class="dk">Link</span><input class="einput" id="doc-url" value="'+esc(d.url||"")+'" placeholder="Paste the document link (Google Drive, etc.)" /></div>'+
+    '<div style="font-size:11px;color:var(--text-soft);margin:-2px 0 6px">Tip: in Google Drive, set the file to “Anyone with the link can view,” then paste that link here.</div>'+
+    (isEdit?'':crossBoxes([{id:"doc-x-mat",label:"Study Materials"},{id:"doc-x-itin",label:"Itinerary day",extra:crossDayPicker("doc-x")}]))+
+    '<div id="doc-msg" class="err hidden"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px"><button class="esave" onclick="saveDoc('+(isEdit?"'"+d.id+"'":"null")+')">'+(isEdit?"Save changes":"Add document")+'</button>'+(isEdit?'<button class="ecancel" onclick="DOC_EDIT=null;render()">Cancel</button>':'')+'</div>'+
+  '</div>';
+}
+function renderDocs(){
+  let h=ADMIN_HEAD();
+  h+='<span class="backlink" onclick="VIEW=\'home\';render()">‹ Back to dashboard</span>';
+  h+='<div class="sectitle serif">Documents</div>';
+  h+='<div class="note" style="margin-bottom:14px;font-size:13px">These appear in each guest\'s hub under <b>Logistics / Materials</b> as a searchable library. Add forms, packing lists, instructions, flight/hotel info — anything printed or downloadable.</div>';
+  if(!DOC_EDIT){ h+=docFormHTML(null); }
+  h+='<div class="esec">Current documents'+(DOCS.length?(' ('+DOCS.length+')'):'')+'</div>';
+  if(!DOCS.length){ h+='<div class="note">No documents yet. Add one above and it shows up in every guest\'s hub.</div>'; }
+  else {
+    h+=DOCS.map(d=>{
+      if(DOC_EDIT && DOC_EDIT.id===d.id){ return docFormHTML(d); }
+      return '<div class="rrow" style="grid-template-columns:34px 1fr auto;align-items:center">'+
+        '<div class="g-av">📄</div>'+
+        '<div class="gcell" style="display:block"><div class="gname">'+esc(d.title||"Document")+'</div><div class="gcomp"><span class="g-badge" style="background:rgba(43,140,140,.16);color:var(--teal);border:1px solid var(--teal);margin-right:6px">'+esc(d.category||"Logistics")+'</span>'+esc((d.description||"").substring(0,50))+'</div></div>'+
+        '<div class="ricons" style="margin-top:0"><div class="ricon" title="Open" onclick="window.open(\''+esc(d.url||"").replace(/'/g,"")+'\',\'_blank\')">↗</div><div class="ricon" title="Edit" onclick="editDoc(\''+d.id+'\')">✎</div><div class="ricon del" title="Delete" onclick="delDoc(\''+d.id+'\',\''+esc((d.title||"").replace(/'/g,""))+'\')">🗑</div></div>'+
+      '</div>';
+    }).join("");
+  }
+  $("app").innerHTML=h;
+  window.scrollTo(0,0);
+}
+function editDoc(id){ DOC_EDIT=DOCS.find(d=>d.id===id)||null; render(); }
+async function saveDoc(id){
+  const t=($("doc-title").value||"").trim();
+  const cat=($("doc-cat").value||"Logistics");
+  const desc=($("doc-desc").value||"").trim();
+  const url=($("doc-url").value||"").trim();
+  const msg=$("doc-msg"); if(msg) msg.classList.add("hidden");
+  if(!t||!url){ if(msg){ msg.textContent="Please enter a title and a link."; msg.classList.remove("hidden"); } return; }
+  try{
+    if(id){
+      const {error}=await sb.from("documents").update({title:t,category:cat,description:desc,url:url}).eq("id",id);
+      if(error) throw error;
+    } else {
+      const {error}=await sb.from("documents").insert({tour_id:TOUR.id,title:t,category:cat,description:desc,url:url});
+      if(error) throw error;
+      // cross-adds (copies)
+      if($("doc-x-mat") && $("doc-x-mat").checked){ await crossAddMaterial(t,desc,url,"pdf"); }
+      if($("doc-x-itin") && $("doc-x-itin").checked){ const dy=parseInt($("doc-x-day").value,10)||1; await crossAddItin(dy,"Handout",t,desc,url); }
+    }
+    DOC_EDIT=null; await loadDocs(); render(); toast(id?"Saved":"Document added");
+  }catch(e){ if(msg){ msg.textContent="Couldn't save: "+(e.message||"error"); msg.classList.remove("hidden"); } }
+}
+async function delDoc(id,title){
+  if(!confirm("Delete "+(title||"this document")+"? It will disappear from guests' hubs.")) return;
+  try{
+    const {error}=await sb.from("documents").delete().eq("id",id);
+    if(error) throw error;
+    await loadDocs(); render(); toast("Deleted");
+  }catch(e){ alert("Couldn't delete: "+(e.message||"error")); }
+}
+
+/* ============ STUDY MATERIALS ============ */
+async function loadMats(){
+  MATS=[];
+  if(!TOUR) return;
+  try{
+    const {data}=await sb.from("materials").select("*").eq("tour_id",TOUR.id).order("sort_order",{ascending:true}).order("created_at",{ascending:true});
+    MATS=data||[];
+  }catch(e){ console.error(e); }
+}
+async function openMats(){
+  VIEW="materials"; MAT_EDIT=null;
+  $("app").innerHTML='<div class="loading">Loading study materials…</div>';
+  await loadMats(); render();
+}
+const MAT_TYPES=["video","pdf","audio","music","scripture","notes","link"];
+function matFormHTML(d){
+  d=d||{};
+  const isEdit=!!d.id;
+  const typeOpts=MAT_TYPES.map(t=>'<option value="'+t+'"'+(((d.type||"pdf")===t)?" selected":"")+'>'+t.toUpperCase()+'</option>').join("");
+  return '<div class="detail"><div class="esec" style="margin-top:0">'+(isEdit?"Edit material":"Add study material")+'</div>'+
+    '<div class="erow"><span class="dk">Title</span><input class="einput" id="mat-title" value="'+esc(d.title||"")+'" placeholder="e.g. Scripture Study Guide" /></div>'+
+    '<div class="erow"><span class="dk">Type</span><select class="einput" id="mat-type">'+typeOpts+'</select></div>'+
+    '<div class="erow"><span class="dk">Tag</span><input class="einput" id="mat-tag" value="'+esc(d.tag||"")+'" placeholder="e.g. ESSENTIAL, STUDY, DEVOTIONAL" /></div>'+
+    '<div class="erow" style="align-items:flex-start"><span class="dk">Description</span><textarea class="einput" id="mat-desc" rows="2" placeholder="Short description">'+esc(d.description||"")+'</textarea></div>'+
+    '<div class="erow"><span class="dk">By</span><input class="einput" id="mat-author" value="'+esc(d.author||"")+'" placeholder="Author / presenter" /></div>'+
+    '<div class="erow"><span class="dk">Meta</span><input class="einput" id="mat-meta" value="'+esc(d.meta||"")+'" placeholder="e.g. 15 min  or  1.2 MB" /></div>'+
+    '<div class="erow"><span class="dk">Link</span><input class="einput" id="mat-url" value="'+esc(d.url||"")+'" placeholder="Paste the link (video, PDF, audio)" /></div>'+
+    (isEdit?'':crossBoxes([{id:"mat-x-doc",label:"Logistics"},{id:"mat-x-itin",label:"Itinerary day",extra:crossDayPicker("mat-x")}]))+
+    '<div id="mat-msg" class="err hidden"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px"><button class="esave" onclick="saveMat('+(isEdit?"'"+d.id+"'":"null")+')">'+(isEdit?"Save changes":"Add material")+'</button>'+(isEdit?'<button class="ecancel" onclick="MAT_EDIT=null;render()">Cancel</button>':'')+'</div>'+
+  '</div>';
+}
+function renderMats(){
+  let h=ADMIN_HEAD();
+  h+='<span class="backlink" onclick="VIEW=\'home\';render()">‹ Back to dashboard</span>';
+  h+='<div class="sectitle serif">Study Materials</div>';
+  h+='<div class="note" style="margin-bottom:14px;font-size:13px">These appear in each guest\'s hub under <b>Study Materials &amp; Resources</b> — the spiritual/educational content for the tour. Videos, PDFs, and audio guides.</div>';
+  if(!MAT_EDIT){ h+=matFormHTML(null); }
+  h+='<div class="esec">Current materials'+(MATS.length?(' ('+MATS.length+')'):'')+'</div>';
+  if(!MATS.length){ h+='<div class="note">No study materials yet. Add one above and it appears in every guest\'s hub.</div>'; }
+  else {
+    h+=MATS.map(d=>{
+      if(MAT_EDIT && MAT_EDIT.id===d.id){ return matFormHTML(d); }
+      const ic=(d.type==="video")?"🎬":(d.type==="audio")?"🎵":"📄";
+      return '<div class="rrow" style="grid-template-columns:34px 1fr auto;align-items:center">'+
+        '<div class="g-av">'+ic+'</div>'+
+        '<div class="gcell" style="display:block"><div class="gname">'+esc(d.title||"Material")+'</div><div class="gcomp">'+(d.tag?'<span class="g-badge" style="background:var(--gold-bg);color:var(--gold-2);border:1px solid var(--gold-dim);margin-right:6px">'+esc(d.tag)+'</span>':'')+esc((d.description||"").substring(0,46))+'</div></div>'+
+        '<div class="ricons" style="margin-top:0"><div class="ricon" title="Open" onclick="window.open(\''+esc(d.url||"").replace(/'/g,"")+'\',\'_blank\')">↗</div><div class="ricon" title="Edit" onclick="editMat(\''+d.id+'\')">✎</div><div class="ricon del" title="Delete" onclick="delMat(\''+d.id+'\',\''+esc((d.title||"").replace(/'/g,""))+'\')">🗑</div></div>'+
+      '</div>';
+    }).join("");
+  }
+  $("app").innerHTML=h;
+  window.scrollTo(0,0);
+}
+function editMat(id){ MAT_EDIT=MATS.find(d=>d.id===id)||null; render(); }
+async function saveMat(id){
+  const gv=k=>{const e=$("mat-"+k);return e?(e.value||"").trim():"";};
+  const t=gv("title"), url=gv("url");
+  const msg=$("mat-msg"); if(msg) msg.classList.add("hidden");
+  if(!t||!url){ if(msg){ msg.textContent="Please enter a title and a link."; msg.classList.remove("hidden"); } return; }
+  const row={title:t,type:gv("type")||"pdf",tag:gv("tag"),description:gv("desc"),author:gv("author"),meta:gv("meta"),url:url};
+  try{
+    if(id){ const {error}=await sb.from("materials").update(row).eq("id",id); if(error) throw error; }
+    else { row.tour_id=TOUR.id; const {error}=await sb.from("materials").insert(row); if(error) throw error;
+      if($("mat-x-doc") && $("mat-x-doc").checked){ await crossAddDocument(t,gv("desc"),url,"Logistics"); }
+      if($("mat-x-itin") && $("mat-x-itin").checked){ const dy=parseInt($("mat-x-day").value,10)||1; await crossAddItin(dy,(gv("type")==="video"?"Video":gv("type")==="audio"?"Audio":"Handout"),t,gv("desc"),url); }
+    }
+    MAT_EDIT=null; await loadMats(); render(); toast(id?"Saved":"Material added");
+  }catch(e){ if(msg){ msg.textContent="Couldn't save: "+(e.message||"error"); msg.classList.remove("hidden"); } }
+}
+async function delMat(id,title){
+  if(!confirm("Delete "+(title||"this material")+"? It will disappear from guests' hubs.")) return;
+  try{ const {error}=await sb.from("materials").delete().eq("id",id); if(error) throw error; await loadMats(); render(); toast("Deleted"); }
+  catch(e){ alert("Couldn't delete: "+(e.message||"error")); }
+}
+
+/* ============ ITINERARY FILES (per-day resources) ============ */
+const RES_TYPES=["Scripture","Handout","Video","Notes","Logistics","Audio","Music","Map"];
+async function loadItinMsgs(){
+  ITINMSGS=[];
+  if(!TOUR) return;
+  try{
+    const {data}=await sb.from("messages").select("*").eq("tour_id",TOUR.id).eq("channel","itinerary").order("created_at",{ascending:true});
+    ITINMSGS=data||[];
+  }catch(e){ console.error(e); }
+}
+async function openItinFiles(){
+  VIEW="itinerary"; ITIN_DAY=1;
+  $("app").innerHTML='<div class="loading">Loading itinerary files…</div>';
+  await loadItinMsgs(); render();
+}
+function parseResAdmin(body){
+  const out=[]; const re=/\[res\](.*?)\[\/res\]/gs; let mm;
+  while((mm=re.exec(body||""))!==null){ const p=mm[1].split("|"); out.push({type:(p[0]||"Handout").trim(),title:(p[1]||"Resource").trim(),desc:(p[2]||"").trim(),url:(p[3]||"").trim()}); }
+  return out;
+}
+function renderItinFiles(){
+  let h=ADMIN_HEAD();
+  h+='<span class="backlink" onclick="VIEW=\'home\';render()">‹ Back to dashboard</span>';
+  h+='<div class="sectitle serif">Itinerary Files</div>';
+  h+='<div class="note" style="margin-bottom:14px;font-size:13px">Attach resources to a specific day. They appear inside that day\'s dropdown in the guest hub itinerary.</div>';
+  // day selector
+  const days=(typeof ITINERARIES!=="undefined"&&ITINERARIES[TOUR&&TOUR.id])?ITINERARIES[TOUR.id]:null;
+  const dayCount = 10;
+  let dayOpts="";
+  for(let i=1;i<=dayCount;i++){ dayOpts+='<option value="'+i+'"'+(ITIN_DAY===i?" selected":"")+'>Day '+i+'</option>'; }
+  h+='<div class="detail"><div class="esec" style="margin-top:0">Add resource to a day</div>';
+  h+='<div class="erow"><span class="dk">Day</span><select class="einput" id="itf-day">'+dayOpts+'</select></div>';
+  let rtOpts=RES_TYPES.map(t=>'<option value="'+t+'">'+t+'</option>').join("");
+  h+='<div class="erow"><span class="dk">Type</span><select class="einput" id="itf-type">'+rtOpts+'</select></div>';
+  h+='<div class="erow"><span class="dk">Title</span><input class="einput" id="itf-title" placeholder="e.g. Hill Cumorah Study Guide" /></div>';
+  h+='<div class="erow" style="align-items:flex-start"><span class="dk">Description</span><textarea class="einput" id="itf-desc" rows="2" placeholder="Short description"></textarea></div>';
+  h+='<div class="erow"><span class="dk">Link</span><input class="einput" id="itf-url" placeholder="Paste link (optional for notes)" /></div>';
+  h+=crossBoxes([{id:"itf-x-mat",label:"Study Materials"},{id:"itf-x-doc",label:"Logistics"}]);
+  h+='<div id="itf-msg" class="err hidden"></div>';
+  h+='<button class="esave" style="margin-top:8px" onclick="addItinRes()">Add to day</button></div>';
+  // existing per day
+  const byDay={};
+  ITINMSGS.forEach(m=>{ const d=m.day_number; if(d==null) return; (byDay[d]=byDay[d]||[]).push(m); });
+  h+='<div class="esec">Current itinerary files</div>';
+  let any=false;
+  for(let i=1;i<=dayCount;i++){
+    const msgs=byDay[i]||[];
+    const res=[]; msgs.forEach(m=>parseResAdmin(m.body).forEach(r=>res.push({r,mid:m.id})));
+    if(!res.length) continue;
+    any=true;
+    h+='<div class="esec" style="border-top:none;color:var(--gold-2);margin:10px 0 6px">Day '+i+'</div>';
+    h+=res.map(x=>'<div class="rrow" style="grid-template-columns:34px 1fr auto;align-items:center"><div class="g-av">📎</div><div class="gcell" style="display:block"><div class="gname">'+esc(x.r.title)+'</div><div class="gcomp"><span class="g-badge" style="background:var(--gold-bg);color:var(--gold-2);border:1px solid var(--gold-dim);margin-right:6px">'+esc(x.r.type)+'</span>'+esc((x.r.desc||"").substring(0,40))+'</div></div><div class="ricons" style="margin-top:0">'+(x.r.url?'<div class="ricon" title="Open" onclick="window.open(\''+esc(x.r.url).replace(/'/g,"")+'\',\'_blank\')">↗</div>':'')+'<div class="ricon del" title="Delete" onclick="delItinRes(\''+x.mid+'\')">🗑</div></div></div>').join("");
+  }
+  if(!any){ h+='<div class="note">No itinerary files yet. Add one above.</div>'; }
+  $("app").innerHTML=h;
+  window.scrollTo(0,0);
+}
+async function addItinRes(){
+  const gv=k=>{const e=$("itf-"+k);return e?(e.value||"").trim():"";};
+  const day=parseInt($("itf-day").value,10);
+  const type=gv("type"), title=gv("title"), desc=gv("desc"), url=gv("url");
+  const msg=$("itf-msg"); if(msg) msg.classList.add("hidden");
+  if(!title){ if(msg){ msg.textContent="Please enter a title."; msg.classList.remove("hidden"); } return; }
+  const body="[res]"+type+"|"+title+"|"+desc+"|"+url+"[/res]";
+  try{
+    const {error}=await sb.from("messages").insert({tour_id:TOUR.id,channel:"itinerary",day_number:day,author_name:"Tour Team",body:body});
+    if(error) throw error;
+    if($("itf-x-mat") && $("itf-x-mat").checked){ await crossAddMaterial(title,desc,url,(type==="Video"?"video":type==="Audio"?"audio":"pdf")); }
+    if($("itf-x-doc") && $("itf-x-doc").checked){ await crossAddDocument(title,desc,url,"Logistics"); }
+    ITIN_DAY=day; await loadItinMsgs(); render(); toast("Added to Day "+day);
+  }catch(e){ if(msg){ msg.textContent="Couldn't add: "+(e.message||"error"); msg.classList.remove("hidden"); } }
+}
+async function delItinRes(mid){
+  if(!confirm("Delete this itinerary file?")) return;
+  try{ const {error}=await sb.from("messages").delete().eq("id",mid); if(error) throw error; await loadItinMsgs(); render(); toast("Deleted"); }
+  catch(e){ alert("Couldn't delete: "+(e.message||"error")); }
+}
+
+function ADMIN_HEAD(){
+  return `<div class="head"><div class="head-title" style="display:flex;align-items:center;gap:11px"><img src="logo.png" style="height:64px;width:auto;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" /><span class="serif" style="display:none;font-size:22px;color:var(--gold-2);line-height:1.05">The Stick of Joseph</span><span style="font-size:12px;color:var(--text-soft);letter-spacing:.18em;text-transform:uppercase;font-weight:700">Admin</span></div></div>`;
+}
+function fmtTime(iso){ try{ return new Date(iso).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }catch(e){ return ""; } }
+function stripVideo(b){ return (b||"").replace(/\[video\](.*?)\[\/video\]/gs," [video link] ").trim(); }
+function guestNameByToken(tok){
+  if(!tok) return "Guest";
+  const r=ROWS.find(x=>x.reg_token===tok);
+  if(r) return r.full_name||"Guest";
+  const m=MEMBERS.find(x=>x.reg_token===tok);
+  if(m) return (m.name||"Staff")+" (staff)";
+  return "Guest";
+}
+function dmName(arr,tok){
+  const g=arr.slice().reverse().find(m=>m.author_name && m.author_name!=="Tour Team");
+  if(g) return g.author_name;
+  return guestNameByToken(tok);
+}
+function inboxNeedsCount(){
+  let n=0;
+  const byTok={};
+  MSGS.filter(m=>m.channel==="dm").forEach(m=>{ const t=m.dm_with||"u"; (byTok[t]=byTok[t]||[]).push(m); });
+  Object.values(byTok).forEach(arr=>{ const last=arr[arr.length-1]; if(last && last.author_name!=="Tour Team") n++; });
+  return n;
+}
+async function openMessages(tab){
+  MSGTAB=tab||"broadcast"; DM_OPEN=null; VIEW="messages";
+  $("app").innerHTML='<div class="loading">Loading messages…</div>';
+  await loadMsgs(); render();
+}
+async function openEmail(){
+  MSGTAB="email"; DM_OPEN=null; VIEW="messages";
+  $("app").innerHTML='<div class="loading">Loading…</div>';
+  await loadMsgs(); render();
+}
+function adminMsgBubble(m){
+  const mine=(m.author_name==="Tour Team");
+  const who=mine?"Tour Team":(m.author_name||"Guest");
+  return '<div class="msgbubble '+(mine?"mb-team":"mb-guest")+'">'+
+    '<div class="who">'+esc(who)+' · '+esc(fmtTime(m.created_at))+(m.answered?' · <span style="color:var(--green)">✓ answered</span>':'')+'</div>'+
+    '<div class="txt">'+esc(stripVideo(m.body))+'</div>'+
+  '</div>';
+}
+function qaNeedsCount(){
+  return MSGS.filter(m=>m.channel==="questions" && m.author_name!=="Tour Team" && !m.answered).length;
+}
+function msgTabsHTML(){
+  const c=inboxNeedsCount();
+  const q=qaNeedsCount();
+  return '<div class="pills" style="margin-bottom:14px">'+
+    '<div class="pill '+(MSGTAB==="broadcast"?"on":"")+'" onclick="MSGTAB=\'broadcast\';DM_OPEN=null;render()">📡 Broadcast</div>'+
+    '<div class="pill '+(MSGTAB==="email"?"on":"")+'" onclick="MSGTAB=\'email\';DM_OPEN=null;render()">📧 Email</div>'+
+    '<div class="pill '+(MSGTAB==="inbox"?"on":"")+'" onclick="MSGTAB=\'inbox\';DM_OPEN=null;render()">📥 Inbox'+(c?' ('+c+')':'')+'</div>'+
+    '<div class="pill '+(MSGTAB==="qa"?"on":"")+'" onclick="MSGTAB=\'qa\';DM_OPEN=null;render()" style="'+(q?'background:rgba(212,160,42,.18);border-color:var(--gold);color:var(--gold-2)':'')+'">❓ Q&amp;A'+(q?' <span style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:var(--gold);color:#1a1300;font-size:11px;font-weight:700;margin-left:2px;padding:0 5px">'+q+'</span>':'')+'</div>'+
+  '</div>';
+}
+function broadcastTabHTML(){
+  let h='<div class="detail"><div class="esec" style="margin-top:0">New broadcast</div>';
+  h+='<div class="erow"><span class="dk">Channel</span><select class="einput" id="bc-channel"><option value="announcements">📢 Announcements</option><option value="logistics">📋 Logistics</option><option value="community">💬 Community Chat</option></select></div>';
+  h+='<div class="erow" style="align-items:flex-start"><span class="dk">Message</span><textarea class="einput" id="bc-body" rows="4" placeholder="Write your update…"></textarea></div>';
+  h+='<div class="erow"><span class="dk">Video</span><input class="einput" id="bc-video" placeholder="Optional YouTube/Vimeo link" /></div>';
+  h+='<label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text-dim);margin:8px 0 4px"><input type="checkbox" id="bc-pin"> Pin to top (Announcements only)</label>';
+  h+='<div id="bc-msg" class="err hidden"></div>';
+  h+='<button class="esave" id="bc-btn" style="margin-top:8px" onclick="postBroadcast()">Post broadcast</button>';
+  h+='</div>';
+  const recent=MSGS.filter(m=>["announcements","logistics","community"].includes(m.channel)).slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  h+='<div class="esec">Recent broadcasts</div>';
+  if(!recent.length){ h+='<div class="note">No broadcasts yet. Anything you post here appears in the matching channel inside every guest\'s hub.</div>'; }
+  else {
+    const lbl={announcements:"📢 Announcements",logistics:"📋 Logistics",community:"💬 Community"};
+    h+=recent.map(m=>'<div class="msgbubble mb-team"><div class="who">'+(lbl[m.channel]||m.channel)+(m.pinned?' · 📌 pinned':'')+' · '+esc(fmtTime(m.created_at))+'</div><div class="txt">'+esc(stripVideo(m.body))+'</div><div class="ricons" style="margin-top:8px"><div class="ricon del" onclick="delMsg(\''+m.id+'\')">🗑</div></div></div>').join("");
+  }
+  return h;
+}
+/* ============ EMAIL GUESTS (Resend via Edge Function) ============ */
+function emailTabHTML(){
+  let h='<div class="detail"><div class="esec" style="margin-top:0">Email guests an announcement</div>';
+  h+='<div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">Sends a branded email — with each guest\u2019s personal hub link — to everyone who has an email on file.</div>';
+  h+='<div class="erow"><span class="dk">Subject</span><input class="einput" id="em-title" placeholder="e.g. Two weeks to departure!" /></div>';
+  h+='<div class="erow" style="align-items:flex-start"><span class="dk">Message</span><textarea class="einput" id="em-body" rows="5" placeholder="Write your announcement\u2026"></textarea></div>';
+  h+='<label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text-dim);margin:8px 0 12px"><input type="checkbox" id="em-hub" checked> Also post it to the hub Announcements feed</label>';
+  h+='<div class="esec">Step 1 · Preview to yourself</div>';
+  h+='<div class="erow"><span class="dk">Your email</span><input class="einput" id="em-preview" placeholder="you@email.com" /></div>';
+  h+='<button class="ecancel" id="em-prevbtn" style="border:1px dashed var(--gold-dim);color:var(--gold-2);width:100%;margin-bottom:6px" onclick="previewEmail()">Send me a preview</button>';
+  h+='<div class="esec">Step 2 · Send to everyone</div>';
+  h+='<div id="em-msg" class="err hidden"></div>';
+  h+='<button class="esave" id="em-sendbtn" style="width:100%" onclick="confirmSendEmail()">\u2709\ufe0f Send to all guests</button>';
+  h+='</div>';
+  return h;
+}
+async function callAnnounceFn(payload){
+  const res=await fetch(FUNCTIONS_URL,{ method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+SUPABASE_ANON, "apikey":SUPABASE_ANON }, body:JSON.stringify(payload) });
+  let data={}; try{ data=await res.json(); }catch(e){}
+  return { ok:res.ok, data:data };
+}
+function emTitleBody(){
+  return { title:($("em-title")?($("em-title").value||"").trim():""), body:($("em-body")?($("em-body").value||"").trim():"") };
+}
+async function previewEmail(){
+  const tb=emTitleBody();
+  const to=($("em-preview")?($("em-preview").value||"").trim():"");
+  const msg=$("em-msg"); if(msg) msg.classList.add("hidden");
+  if(!tb.title||!tb.body){ if(msg){ msg.textContent="Add a subject and message first."; msg.classList.remove("hidden"); } return; }
+  if(!to){ if(msg){ msg.textContent="Enter your email to get a preview."; msg.classList.remove("hidden"); } return; }
+  const btn=$("em-prevbtn"); if(btn){ btn.disabled=true; btn.textContent="Sending preview…"; }
+  try{
+    const r=await callAnnounceFn({ test_to:to, title:tb.title, body:tb.body });
+    if(!r.ok) throw new Error((r.data&&r.data.error)||"send failed");
+    toast("Preview sent to "+to);
+  }catch(e){ if(msg){ msg.textContent="Couldn't send preview: "+(e.message||"error"); msg.classList.remove("hidden"); } }
+  if(btn){ btn.disabled=false; btn.textContent="Send me a preview"; }
+}
+function confirmSendEmail(){
+  const tb=emTitleBody();
+  const msg=$("em-msg"); if(msg) msg.classList.add("hidden");
+  if(!tb.title||!tb.body){ if(msg){ msg.textContent="Add a subject and message first."; msg.classList.remove("hidden"); } return; }
+  const n=ROWS.filter(r=>r.email && String(r.email).indexOf("@")>-1).length;
+  if(!confirm("Send this announcement email to all guests with an address on file"+(n?(" (about "+n+")"):"")+"?\n\nIt goes out right away.")) return;
+  sendEmailToAll();
+}
+async function sendEmailToAll(){
+  const tb=emTitleBody();
+  const alsoHub=$("em-hub")?$("em-hub").checked:false;
+  const btn=$("em-sendbtn"); if(btn){ btn.disabled=true; btn.textContent="Sending…"; }
+  const msg=$("em-msg"); if(msg) msg.classList.add("hidden");
+  try{
+    if(alsoHub && TOUR){ try{ await sb.from("messages").insert({ tour_id:TOUR.id, channel:"announcements", body:tb.title+"\n\n"+tb.body, author_name:"Tour Team" }); }catch(e){ console.error("hub post",e); } }
+    const r=await callAnnounceFn({ title:tb.title, body:tb.body });
+    if(!r.ok) throw new Error((r.data&&r.data.error)||"send failed");
+    const sent=(r.data&&(r.data.sent!=null?r.data.sent:r.data.recipients))||0;
+    await loadMsgs(); render();
+    toast("Sent to "+sent+" guest"+(sent===1?"":"s"));
+  }catch(e){ if(msg){ msg.textContent="Couldn't send: "+(e.message||"error"); msg.classList.remove("hidden"); } if(btn){ btn.disabled=false; btn.textContent="✉️ Send to all guests"; } }
+}
+function inboxTabHTML(){
+  const dms=MSGS.filter(m=>m.channel==="dm");
+  let h='';
+  h+='<div class="esec" style="margin-top:4px">Direct Messages</div>';
+  const byTok={};
+  dms.forEach(m=>{ const t=m.dm_with||"unknown"; (byTok[t]=byTok[t]||[]).push(m); });
+  const toks=Object.keys(byTok);
+  if(!toks.length){ h+='<div class="note">No direct messages from guests yet.</div>'; }
+  else {
+    toks.sort((a,b)=> new Date(byTok[b][byTok[b].length-1].created_at)-new Date(byTok[a][byTok[a].length-1].created_at));
+    h+=toks.map(t=>{
+      const arr=byTok[t]; const last=arr[arr.length-1]; const name=dmName(arr,t);
+      const needs=last.author_name!=="Tour Team";
+      return '<div class="rrow" style="grid-template-columns:34px 1fr auto;cursor:pointer" onclick="openDM(\''+String(t).replace(/'/g,"")+'\')">'+
+        '<div class="g-av">'+initials(name)+'</div>'+
+        '<div class="gcell" style="display:block"><div class="gname">'+esc(name)+'</div><div class="gcomp">'+esc(stripVideo(last.body).substring(0,60))+'</div></div>'+
+        '<div class="ricons" style="margin-top:0">'+(needs?'<span class="g-badge b-part">Needs reply</span>':'<span class="g-badge b-reg">Replied</span>')+'</div>'+
+      '</div>';
+    }).join("");
+  }
+  return h;
+}
+function qaTabHTML(){
+  let h='<div class="detail"><div class="esec" style="margin-top:0">Post a public reply</div><textarea class="einput" id="qa-reply" rows="3" placeholder="Type a public reply for the Q&A channel…"></textarea><button class="esave" style="margin-top:8px" onclick="postQAReply()">Post reply</button></div>';
+  h+='<input class="einput" id="qa-search" placeholder="Search questions…" value="'+esc(QA_SEARCH||"")+'" oninput="QA_SEARCH=this.value;paintQAList()" style="margin-bottom:6px" />';
+  h+='<div class="esec">Questions</div><div id="qa-list"></div>';
+  return h;
+}
+function paintQAList(){
+  const el=$("qa-list"); if(!el) return;
+  const q=(QA_SEARCH||"").trim().toLowerCase();
+  let qas=MSGS.filter(m=>m.channel==="questions");
+  qas=qas.slice().sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)); // newest first
+  if(q) qas=qas.filter(m=>(stripVideo(m.body)+" "+(m.author_name||"")).toLowerCase().includes(q));
+  if(!qas.length){ el.innerHTML='<div class="note">'+(MSGS.some(m=>m.channel==="questions")?"No questions match your search.":"No questions posted yet.")+'</div>'; return; }
+  el.innerHTML=qas.map(m=>{
+    const fromGuest=m.author_name!=="Tour Team";
+    const needs=fromGuest && !m.answered;
+    let row='<div style="border-left:3px solid '+(needs?"var(--gold)":(fromGuest?"var(--line-strong)":"var(--teal)"))+';border-radius:8px;background:'+(needs?"rgba(212,160,42,.08)":"transparent")+';padding:2px 0 2px 0;margin-bottom:10px">';
+    row+=adminMsgBubble(m);
+    if(fromGuest){ row+='<div style="margin:-4px 0 4px 12px"><button class="ecancel" onclick="markAnswered(\''+m.id+'\','+(m.answered?'false':'true')+')">'+(m.answered?'Unmark answered':'✓ Mark answered')+'</button> <button class="ecancel" onclick="delMsg(\''+m.id+'\')" style="color:var(--red)">Delete</button></div>'; }
+    else { row+='<div style="margin:-4px 0 4px 12px"><button class="ecancel" onclick="delMsg(\''+m.id+'\')" style="color:var(--red)">Delete</button></div>'; }
+    row+='</div>';
+    return row;
+  }).join("");
+}
+function dmThreadHTML(tok){
+  const arr=MSGS.filter(m=>m.channel==="dm" && m.dm_with===tok).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  const name=dmName(arr,tok);
+  let h='<span class="backlink" onclick="DM_OPEN=null;render()">‹ Back to inbox</span>';
+  h+='<div class="sectitle serif">'+esc(name)+'</div>';
+  h+='<div class="note" style="margin-bottom:12px;font-size:12px">Private conversation. Your reply appears in this guest\'s hub under <b>Message the Team</b>.</div>';
+  h+=arr.length?arr.map(adminMsgBubble).join(""):'<div class="note">No messages.</div>';
+  h+='<div class="detail"><div class="esec" style="margin-top:0">Reply privately</div><textarea class="einput" id="dm-reply" rows="3" placeholder="Reply to '+esc(name)+'…"></textarea><button class="esave" style="margin-top:8px" onclick="sendDMReply(\''+String(tok).replace(/'/g,"")+'\')">Send reply</button></div>';
+  return h;
+}
+function renderMessages(){
+  let h=ADMIN_HEAD();
+  h+='<span class="backlink" onclick="VIEW=\'home\';DM_OPEN=null;render()">‹ Back to dashboard</span>';
+  h+='<div class="sectitle serif">Messages</div>';
+  if(DM_OPEN){ h+=dmThreadHTML(DM_OPEN); $("app").innerHTML=h; window.scrollTo(0,0); return; }
+  h+=msgTabsHTML();
+  h+=(MSGTAB==="inbox")?inboxTabHTML():(MSGTAB==="qa")?qaTabHTML():(MSGTAB==="email")?emailTabHTML():broadcastTabHTML();
+  $("app").innerHTML=h;
+  if(MSGTAB==="qa") paintQAList();
+  window.scrollTo(0,0);
+}
+function openDM(tok){ DM_OPEN=tok; render(); }
+async function postBroadcast(){
+  if(!TOUR) return;
+  const ch=$("bc-channel").value;
+  const body=($("bc-body").value||"").trim();
+  const vid=($("bc-video").value||"").trim();
+  const pin=$("bc-pin")?$("bc-pin").checked:false;
+  const msg=$("bc-msg"); if(msg) msg.classList.add("hidden");
+  if(!body && !vid){ if(msg){ msg.textContent="Write a message (or add a video link) first."; msg.classList.remove("hidden"); } return; }
+  let finalBody=body;
+  if(vid){ finalBody=(body?body+"\n\n":"")+"[video]"+vid+"[/video]"; }
+  const row={ tour_id:TOUR.id, channel:ch, body:finalBody, author_name:"Tour Team" };
+  if(ch==="announcements" && pin) row.pinned=true;
+  const btn=$("bc-btn"); if(btn){ btn.disabled=true; btn.textContent="Posting…"; }
+  try{
+    const {error}=await sb.from("messages").insert(row);
+    if(error) throw error;
+    await loadMsgs(); MSGTAB="broadcast"; render(); toast("Broadcast posted");
+  }catch(e){ if(msg){ msg.textContent="Couldn't post: "+(e.message||"error"); msg.classList.remove("hidden"); } if(btn){ btn.disabled=false; btn.textContent="Post broadcast"; } }
+}
+async function sendDMReply(tok){
+  const inp=$("dm-reply"); if(!inp) return;
+  const body=(inp.value||"").trim(); if(!body) return;
+  try{
+    const {error}=await sb.from("messages").insert({ tour_id:TOUR.id, channel:"dm", body:body, author_name:"Tour Team", dm_with:tok });
+    if(error) throw error;
+    notifyEvent({type:"dm", token:tok});
+    await loadMsgs(); render();
+  }catch(e){ alert("Couldn't send: "+(e.message||"error")); }
+}
+async function postQAReply(){
+  const inp=$("qa-reply"); if(!inp) return;
+  const body=(inp.value||"").trim(); if(!body) return;
+  try{
+    const {error}=await sb.from("messages").insert({ tour_id:TOUR.id, channel:"questions", body:body, author_name:"Tour Team" });
+    if(error) throw error;
+    await loadMsgs(); render(); toast("Reply posted");
+  }catch(e){ alert("Couldn't post: "+(e.message||"error")); }
+}
+async function markAnswered(id,val){
+  try{
+    const {error}=await sb.from("messages").update({answered:val}).eq("id",id);
+    if(error) throw error;
+    await loadMsgs(); render();
+  }catch(e){ alert("Couldn't update: "+(e.message||"error")); }
+}
+async function delMsg(id){
+  if(!confirm("Delete this message? It will disappear from guests' hubs.")) return;
+  try{
+    const {error}=await sb.from("messages").delete().eq("id",id);
+    if(error) throw error;
+    await loadMsgs(); render(); toast("Deleted");
+  }catch(e){ alert("Couldn't delete: "+(e.message||"error")+"\n\nIf nothing was removed, the messages table may need delete permission — ask Claude for the one-line fix."); }
+}
+
+function regUrl(token){ return location.origin+"/registration.html?reg="+token; }
+function hubUrl(token){ return location.origin+"/hub.html?reg="+token; }
+function copyText(t,label){
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>toast((label||"Link")+" copied")).catch(()=>prompt("Copy this:",t)); }
+  else { prompt("Copy this:",t); }
+}
+function copyHub(token){ copyText(hubUrl(token),"Hub link"); }
+function copyReg(token){ copyText(regUrl(token),"Reg link"); }
+function emailReg(token,email,name){
+  const url=regUrl(token);
+  copyText(url,"Reg link");
+  if(email){
+    const subj=encodeURIComponent("Complete your registration — SOJ Tours");
+    const body=encodeURIComponent("Hi "+(name||"")+",\n\nPlease complete your tour registration here:\n"+url+"\n\nThank you!\nThe Stick of Joseph Tours");
+    setTimeout(function(){ location.href="mailto:"+encodeURIComponent(email)+"?subject="+subj+"&body="+body; }, 350);
+  }
+}
+
+function openAddGuest(){ NEWGUEST=null; VIEW="addguest"; render(); }
+function renderAddGuest(){
+  const tourName=(TOUR&&(TOUR.name||TOUR.id))||"tour";
+  let h=`<div class="head"><div class="head-title" style="display:flex;align-items:center;gap:11px"><img src="logo.png" style="height:64px;width:auto;object-fit:contain" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" /><span class="serif" style="display:none;font-size:22px;color:var(--gold-2);line-height:1.05">The Stick of Joseph</span><span style="font-size:12px;color:var(--text-soft);letter-spacing:.18em;text-transform:uppercase;font-weight:700">Admin</span></div></div>`;
+  h+=`<span class="backlink" onclick="VIEW='home';render()">‹ Back to dashboard</span>`;
+  h+=`<div class="sectitle serif">Add a guest</div>`;
+  if(NEWGUEST){
+    h+=`<div class="note" style="border-style:solid;border-color:var(--gold-dim)"><b>✓ ${esc(NEWGUEST.full_name||"Guest")} added to ${esc(tourName)}.</b><div style="margin:10px 0 12px;word-break:break-all;color:var(--text-dim);font-size:13px">${esc(regUrl(NEWGUEST.reg_token))}</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ricon" style="min-width:auto;padding:9px 13px;height:auto" onclick="copyReg('${NEWGUEST.reg_token}')">Copy reg link</button><button class="ricon" style="min-width:auto;padding:9px 13px;height:auto" onclick="emailReg('${NEWGUEST.reg_token}','${esc(NEWGUEST.email||"")}','${esc((NEWGUEST.full_name||"").split(" ")[0])}')">✉️ Email it</button><button class="ricon" style="min-width:auto;padding:9px 13px;height:auto" onclick="openAddGuest()">＋ Add another</button><button class="ricon" style="min-width:auto;padding:9px 13px;height:auto" onclick="VIEW='home';render()">View roster</button></div></div>`;
+  } else {
+    h+=`<div style="max-width:420px"><div style="margin-bottom:14px"><label class="label">Full name</label><input class="input" id="ag-name" placeholder="First and last name" /></div>`+
+       `<div style="margin-bottom:14px"><label class="label">Email</label><input class="input" id="ag-email" type="email" placeholder="name@email.com" /></div>`+
+       `<div style="margin-bottom:14px"><label class="label">Phone</label><input class="input" id="ag-phone" type="tel" placeholder="(555) 555-5555" /></div>`+
+       `<div id="ag-msg" class="err hidden"></div>`+
+       `<button class="btn" id="ag-btn" onclick="addGuest()">Add guest to ${esc(tourName)}</button></div>`;
+  }
+  $("app").innerHTML=h;
+}
+async function addGuest(){
+  if(!TOUR) return;
+  const name=($("ag-name").value||"").trim(), email=($("ag-email").value||"").trim(), phone=($("ag-phone").value||"").trim();
+  const msg=$("ag-msg"), btn=$("ag-btn");
+  if(msg) msg.classList.add("hidden");
+  if(!name||!email||!phone){ if(msg){ msg.textContent="Please fill in name, email, and phone."; msg.classList.remove("hidden"); } return; }
+  if(btn){ btn.disabled=true; btn.textContent="Adding…"; }
+  try{
+    const { data, error } = await sb.from("registrations").insert({ tour_id:TOUR.id, full_name:name, email:email, phone:phone, status:"partial" }).select().single();
+    if(error) throw error;
+    NEWGUEST=data;
+    await loadRows();
+    VIEW="addguest"; render();
+  }catch(e){ if(msg){ msg.textContent="Couldn't add: "+(e.message||"unknown error"); msg.classList.remove("hidden"); } if(btn){ btn.disabled=false; btn.textContent="Add guest"; } }
+}
+
+/* Stay signed in for 24h across hub <-> admin */
+(function(){
+  if(sessionValid()){ unlock(); }
+})();
+</script>
+</body>
+</html>
